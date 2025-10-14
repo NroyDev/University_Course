@@ -11,6 +11,7 @@
 
 const char* ans_path = "./ans.txt";
 const char* fig_path = "./fig.png";
+const char* data_path = "./points.txt";
 
 struct Point{
     long long city;
@@ -18,20 +19,18 @@ struct Point{
     double y;
 };
 
+void argvParser(int argc,const char** argv);
 void plot(const char*, const std::vector<Point>&, const std::vector<long long>&);
 void usage(const char** argv);
 
-int32_t main(int argc, const char** argv){
-    if(argc != 2){
-        usage(argv);
-        exit(1);
-    }
+int main(int argc, const char** argv){
+    argvParser(argc, argv);
 
     // ----------- open file -----------
     std::ifstream in;
-    in.open(argv[1],std::ifstream::in);
+    in.open(data_path,std::ifstream::in);
     if(!in.is_open()){
-        std::cout << "Error: open " << argv[1] << " failed" << std::endl;
+        std::cout << "Error: open " << data_path << " failed" << std::endl;
         exit(2);
     }
     std::ofstream out;
@@ -112,6 +111,50 @@ int32_t main(int argc, const char** argv){
     return 0;
 }
 
+// parse the argv and set the fig_path ans_path data_path
+void argvParser(int argc,const char** argv){
+    if(argc < 2){
+        usage(argv);
+        exit(1);
+    }else if(argc == 2){
+        data_path = argv[1];
+
+
+    }else if(argc == 4){
+        data_path = argv[3];
+        if(strcmp(argv[1], "-oi") == 0){
+            fig_path = argv[2];
+        }else if(strcmp(argv[1], "-ot") == 0){
+            ans_path = argv[2];
+        }
+
+
+    }else if(argc == 6){
+        data_path = argv[5];
+        if(strcmp(argv[1], "-oi") == 0){
+            fig_path = argv[2];
+        }else if(strcmp(argv[1], "-ot") == 0){
+            ans_path = argv[2];
+        }else{
+            usage(argv);
+            exit(1);
+        }
+
+        if(strcmp(argv[3], "-oi") == 0 && strcmp(argv[1], "-oi") != 0){
+            fig_path = argv[4];
+        }else if(strcmp(argv[3], "-ot") == 0 && strcmp(argv[1], "-ot") != 0){
+            ans_path = argv[4];
+        }else{
+            usage(argv);
+            exit(1);
+        }
+    }else{
+        usage(argv);
+        exit(1);
+    }
+    
+}
+
 void plot(const char* title, const std::vector<Point>& points, const std::vector<long long>& order){
     if(order.size() <= 0 || order.size() != points.size()){
         fprintf(stderr, "[plot] Error: size not match\n");
@@ -161,6 +204,10 @@ void plot(const char* title, const std::vector<Point>& points, const std::vector
 }
 
 void usage(const char** argv){
-    std::cout << "用法: " << argv[0] << " [input data file]" << std::endl;
+    std::cout << "用法: " << argv[0] << " [input data path]" << std::endl;
+    std::cout << "用法: " << argv[0] << " -oi [output image path] [input data path]" << std::endl;
+    std::cout << "用法: " << argv[0] << " -ot [output txt path] [input data file]" << std::endl;
+    std::cout << "用法: " << argv[0] << " -oi [output image path] -ot [output txt path] [input data file]" << std::endl;
+    std::cout << "用法: " << argv[0] << " -ot [output txt path] -oi [output image path] [input data file]" << std::endl;
     return;
 }
