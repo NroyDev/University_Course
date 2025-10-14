@@ -56,21 +56,37 @@ int32_t main(int argc, const char** argv){
     for(long long i = 0; i<(long long)points.size(); ++i){
         perm.push_back(i);
     }
+    // pre calculate distance
+    double** dist = new double*[points.size()];   // dist[a][b] = distance from a to b
+    for(long long i=0;i<(long long)points.size();++i){
+        dist[i] = new double[points.size()];
+        dist[i][i] = 0;
+    }
+    for(long long i=0;i<(long long)points.size();++i){
+        Point from = points[i];
+        for(long long j=i+1;j<(long long)points.size();++j){
+            Point to   = points[j];
+            dist[i][j] = dist[j][i] = sqrt((from.x-to.x)*(from.x-to.x) + (from.y-to.y)*(from.y-to.y));
+        }
+    }
 
     // ----------- Exhaustive Search -----------
     double shortest_dist = 1.0/0.0; // inf
     std::vector<long long> shortest_path;
     do{
-        Point from = points[perm[0]];
+        long long from = perm[0];
         double current_dist = 0;
         for(long long i=1; i<(long long)perm.size(); ++i){
-            Point to = points[perm[i]];
-            current_dist += sqrt((from.x-to.x)*(from.x-to.x) + (from.y-to.y)*(from.y-to.y));
+            long long to = perm[i];
+            current_dist += dist[from][to];
             from = to;
+            if(current_dist > shortest_dist){   // 提早離開 不可能了
+                break;
+            }
 
             if(i == (long long)perm.size() - 1){
-                to = points[perm.at(0)];
-                current_dist += sqrt((from.x-to.x)*(from.x-to.x) + (from.y-to.y)*(from.y-to.y));
+                to = perm.at(0);
+                current_dist += dist[from][to];
                 if(current_dist < shortest_dist){
                     shortest_dist = current_dist;
                     shortest_path = perm;
@@ -78,6 +94,11 @@ int32_t main(int argc, const char** argv){
             }
         }
     }while(std::next_permutation(perm.begin(), perm.end()));
+    // 回收空間
+    for(long long i=0;i<(long long)points.size();++i){
+        delete[] dist[i];
+    }
+    delete[] dist;
 
     // ----------- print ans -----------
     out << "distance: " << shortest_dist << std::endl;
