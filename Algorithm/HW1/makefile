@@ -3,7 +3,7 @@ CFLAG	= -O2
 CFLAG	+= -Wall -Wextra
 SOURCES	= ./main.cpp
 OBJECTS	= $(SOURCES:.cpp=.o)
-TARGET	= ./TSP1.exe
+TARGET	= ./tsp.exe
 
 .PHONY: all
 all: $(TARGET)
