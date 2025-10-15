@@ -1,9 +1,11 @@
 *.o
 *.exe
-*/output
+**/output
 
 *.7z
 *.zip
 *.pdf
 *.png
 *.jpg
+
+**/__pycache__
