@@ -90,34 +90,55 @@ def depthFirstSearch(problem: SearchProblem) -> List[Directions]:
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    path = []
-    visited = set()
+    visited = {problem.getStartState()}
     state_stack = util.Stack()
     state_stack.push([
-        problem.getStartState(),                            # Current State
-        problem.getSuccessors(problem.getStartState()),     # Successors (state, action, ?)
-        None,                                               # Prev State
+        problem.getStartState(),
+        [],
     ])
     while(not state_stack.isEmpty()):
-        state, successors, prev_state = state_stack.pop()
-        successors = list(filter(lambda x: x[0] not in visited, successors))    # remove the state that is already visited
-        visited.add(state)
+        state, path = state_stack.pop()
         if(problem.isGoalState(state)):
-            break
+            return path
+        
 
-        if(len(successors)>0):      # goto successors
-            nextState, action, dummy = successors.pop()
-            state_stack.push([state, successors, prev_state])
-            state_stack.push([nextState, problem.getSuccessors(nextState), state])
-            path.append(action)
-        else:                       # goback prevState
-            if(prev_state == None):
-                print("[DFS] No Solution Found!!")
-                break
-            action = list(filter(lambda x:x[0] == prev_state, problem.getSuccessors(state)))[0][1]
-            path.append(action)
-    
-    return path
+        for Successor in problem.getSuccessors(state):
+            if(Successor[0] not in visited):
+                next_path = path.copy()
+                next_path.append(Successor[1])
+                state_stack.push([Successor[0], next_path])
+                visited.add(Successor[0])
+
+    print("[DFS] No Solution Found")
+    return []
+    # ------------------------------ Ver 2 ------------------------------
+    # path = []
+    # visited = set()
+    # state_stack = util.Stack()
+    # state_stack.push([
+    #     problem.getStartState(),                            # Current State
+    #     problem.getSuccessors(problem.getStartState()),     # Successors (state, action, ?)
+    #     None,                                               # Prev State
+    # ])
+    # while(not state_stack.isEmpty()):
+    #     state, successors, prev_state = state_stack.pop()
+    #     successors = list(filter(lambda x: x[0] not in visited, successors))    # remove the state that is already visited
+    #     visited.add(state)
+    #     if(problem.isGoalState(state)):
+    #         break
+
+    #     if(len(successors)>0):      # goto successors
+    #         nextState, action, dummy = successors.pop()
+    #         state_stack.push([state, successors, prev_state])
+    #         state_stack.push([nextState, problem.getSuccessors(nextState), state])
+    #         path.append(action)
+    #     else:                       # goback prevState
+    #         if(prev_state == None):
+    #             print("[DFS] No Solution Found!!")
+    #             break
+    #         action = list(filter(lambda x:x[0] == prev_state, problem.getSuccessors(state)))[0][1]
+    #         path.append(action)
+    # return path
     # util.raiseNotDefined()
 
 def breadthFirstSearch(problem: SearchProblem) -> List[Directions]:
