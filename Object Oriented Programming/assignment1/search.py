@@ -211,8 +211,8 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directi
     "*** YOUR CODE HERE ***"
     visited = set()
     state_dict = {problem.getStartState():[
-        [],
-        heuristic(problem.getStartState(), problem),
+        [],                                             # path
+        heuristic(problem.getStartState(), problem),    # priority in pq
     ]}
     state_pq = util.PriorityQueue()
     state_pq.push(problem.getStartState() ,heuristic(problem.getStartState(), problem))
@@ -227,7 +227,8 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directi
             if(next_state in visited):
                 continue
             
-            priority = heuristic(next_state, problem)
+            # f(n) = h(n) + g(n)
+            priority = heuristic(next_state, problem) + len(state_dict[state][0])
             if((next_state not in state_dict.keys()) or (priority < state_dict[next_state][1])):
                 path = state_dict[state][0].copy()
                 path.append(action)
