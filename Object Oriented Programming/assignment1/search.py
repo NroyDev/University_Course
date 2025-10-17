@@ -91,113 +91,88 @@ def depthFirstSearch(problem: SearchProblem) -> List[Directions]:
     """
     "*** YOUR CODE HERE ***"
     visited = {problem.getStartState()}
+    last_state = problem.getStartState()
+    state_dict = {problem.getStartState(): None}     # key: state, value: (prev_state, action_tostate)
     state_stack = util.Stack()
-    state_stack.push([
-        problem.getStartState(),
-        [],
-    ])
+    state_stack.push(problem.getStartState())        # state
     while(not state_stack.isEmpty()):
-        state, path = state_stack.pop()
+        last_state = state = state_stack.pop()
         if(problem.isGoalState(state)):
-            return path
-        
+            break
 
-        for Successor in problem.getSuccessors(state):
-            if(Successor[0] not in visited):
-                next_path = path.copy()
-                next_path.append(Successor[1])
-                state_stack.push([Successor[0], next_path])
-                visited.add(Successor[0])
+        successors = problem.getSuccessors(state)
+        for successor in successors:
+            next_state, action, cost = successor
+            if(next_state not in visited):
+                visited.add(next_state)
+                state_dict[next_state] = (state, action)
+                state_stack.push(next_state)
+    
+    path = []
+    while(state_dict[last_state] != None):
+        path.append(state_dict[last_state][1])
+        last_state = state_dict[last_state][0]
 
-    print("[DFS] No Solution Found")
-    return []
-    # ------------------------------ Ver 2 ------------------------------
-    # path = []
-    # visited = set()
-    # state_stack = util.Stack()
-    # state_stack.push([
-    #     problem.getStartState(),                            # Current State
-    #     problem.getSuccessors(problem.getStartState()),     # Successors (state, action, ?)
-    #     None,                                               # Prev State
-    # ])
-    # while(not state_stack.isEmpty()):
-    #     state, successors, prev_state = state_stack.pop()
-    #     successors = list(filter(lambda x: x[0] not in visited, successors))    # remove the state that is already visited
-    #     visited.add(state)
-    #     if(problem.isGoalState(state)):
-    #         break
-
-    #     if(len(successors)>0):      # goto successors
-    #         nextState, action, dummy = successors.pop()
-    #         state_stack.push([state, successors, prev_state])
-    #         state_stack.push([nextState, problem.getSuccessors(nextState), state])
-    #         path.append(action)
-    #     else:                       # goback prevState
-    #         if(prev_state == None):
-    #             print("[DFS] No Solution Found!!")
-    #             break
-    #         action = list(filter(lambda x:x[0] == prev_state, problem.getSuccessors(state)))[0][1]
-    #         path.append(action)
-    # return path
-    # util.raiseNotDefined()
+    return path[::-1]
 
 def breadthFirstSearch(problem: SearchProblem) -> List[Directions]:
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     visited = {problem.getStartState()}
+    last_state = problem.getStartState()
+    state_dict = {problem.getStartState(): None}     # key: state, value: (prev_state, action_tostate)
     state_queue = util.Queue()
-    state_queue.push([
-        problem.getStartState(),
-        [],
-    ])
+    state_queue.push(problem.getStartState())        # state
     while(not state_queue.isEmpty()):
-        state, path = state_queue.pop()
+        last_state = state = state_queue.pop()
         if(problem.isGoalState(state)):
-            return path
-        
+            break
 
-        for Successor in problem.getSuccessors(state):
-            if(Successor[0] not in visited):
-                next_path = path.copy()
-                next_path.append(Successor[1])
-                state_queue.push([Successor[0], next_path])
-                visited.add(Successor[0])
+        successors = problem.getSuccessors(state)
+        for successor in successors:
+            next_state, action, cost = successor
+            if(next_state not in visited):
+                visited.add(next_state)
+                state_dict[next_state] = (state, action)
+                state_queue.push(next_state)
+    
+    path = []
+    while(state_dict[last_state] != None):
+        path.append(state_dict[last_state][1])
+        last_state = state_dict[last_state][0]
 
-    print("[BFS] No Solution Found")
-    return []
-    # util.raiseNotDefined()
+    return path[::-1]
 
 def uniformCostSearch(problem: SearchProblem) -> List[Directions]:
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
     visited = set()
-    state_dict = {problem.getStartState() : [
-        [],                         # path
-        0                           # total cost
-    ]}
+    last_state = problem.getStartState()
+    state_dict = {problem.getStartState(): (None, 0)}    # key: state, value: ((prev_state, action_tostate), cost)
     state_pq = util.PriorityQueue()
-    state_pq.push(problem.getStartState(),0)
+    state_pq.push(problem.getStartState(), 0)
     while(not state_pq.isEmpty()):
-        state = state_pq.pop()
+        last_state = state = state_pq.pop()
         visited.add(state)
         if(problem.isGoalState(state)):
-            return state_dict[state][0]
-        
-        for successor in problem.getSuccessors(state):
-            next_state, action, dummy = successor
+            break
+
+        successors = problem.getSuccessors(state)
+        for successor in successors:
+            next_state, action, cost = successor
             if(next_state in visited):
                 continue
-            
-            priority = state_dict[state][1]+1
-            if((next_state not in state_dict.keys()) or (priority < state_dict[next_state][1])):
-                path = state_dict[state][0].copy()
-                path.append(action)
-                state_dict[next_state] = [path, priority]
-                state_pq.update(next_state, priority)
+            new_priority = state_dict[state][1] + problem.getCostOfActions([action])
+            if((next_state not in state_dict.keys()) or (new_priority < state_dict[next_state][1])):
+                state_dict[next_state] = ((state, action), new_priority)
+                state_pq.update(next_state, new_priority)
 
-    print("[UCS] Solution not found")
-    return []
-    # util.raiseNotDefined()
+    path = []
+    while(state_dict[last_state][0] != None):
+        path.append(state_dict[last_state][0][1])
+        last_state = state_dict[last_state][0][0]
+
+    return path[::-1]
 
 def nullHeuristic(state, problem=None) -> float:
     """
@@ -210,32 +185,34 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directi
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
     visited = set()
-    state_dict = {problem.getStartState():[
-        [],                                             # path
-        heuristic(problem.getStartState(), problem),    # priority in pq
-    ]}
+    last_state = problem.getStartState()
+    state_dict = {problem.getStartState(): (None, 0, 0)}    # key: state, value: ((prev_state, action_tostate), cost, dist_start)
     state_pq = util.PriorityQueue()
-    state_pq.push(problem.getStartState() ,heuristic(problem.getStartState(), problem))
+    state_pq.push(problem.getStartState(), 0)
     while(not state_pq.isEmpty()):
-        state = state_pq.pop()
+        last_state = state = state_pq.pop()
         visited.add(state)
         if(problem.isGoalState(state)):
-            return state_dict[state][0]
-        
-        for successor in problem.getSuccessors(state):
-            next_state, action, dummy = successor
+            break
+
+        successors = problem.getSuccessors(state)
+        for successor in successors:
+            next_state, action, cost = successor
             if(next_state in visited):
                 continue
-            
-            # f(n) = h(n) + g(n)
-            priority = heuristic(next_state, problem) + len(state_dict[state][0])
-            if((next_state not in state_dict.keys()) or (priority < state_dict[next_state][1])):
-                path = state_dict[state][0].copy()
-                path.append(action)
-                state_dict[next_state] = [path, priority]
-                state_pq.update(next_state, priority)
 
-    # util.raiseNotDefined()
+            # f(n) = h(n) + g(n)
+            new_priority = heuristic(next_state, problem) + (state_dict[state][2]+1)
+            if((next_state not in state_dict.keys()) or (new_priority < state_dict[next_state][1])):
+                state_dict[next_state] = ((state, action), new_priority, state_dict[state][2]+1)
+                state_pq.update(next_state, new_priority)
+
+    path = []
+    while(state_dict[last_state][0] != None):
+        path.append(state_dict[last_state][0][1])
+        last_state = state_dict[last_state][0][0]
+
+    return path[::-1]
 
 # Abbreviations
 bfs = breadthFirstSearch
