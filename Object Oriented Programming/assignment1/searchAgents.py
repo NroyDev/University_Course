@@ -475,7 +475,37 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    foodGrid_list = foodGrid.asList()
+    foodGrid_list.append(position)
+    foodGrid_size = len(foodGrid_list)
+    
+    # MST - Prim's
+    pq = util.PriorityQueue()
+    pq.push((0,0), 0)  # node cost
+    visited = set()
+    ret = 0
+    while not pq.isEmpty():
+        node, cost = pq.pop()
+        if(node in visited):
+            continue
+        visited.add(node)
+        ret += cost
+
+        for next_node in range(foodGrid_size):
+            if(next_node in visited):
+                continue
+            next_cost = util.manhattanDistance(foodGrid_list[node], foodGrid_list[next_node])
+            pq.push((next_node, next_cost), next_cost)
+
+    return ret
+
+    # ----------------------------- old strategy -----------------------------
+        # print(len(foodGrid_list))
+    # size = len(foodGrid_list)
+    # if(size > 0):
+    #     return (min(map(lambda foodPos: util.manhattanDistance(foodPos, position), foodGrid_list))+size-1)
+    # else:
+    #     return 0
 
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -507,7 +537,8 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.breadthFirstSearch(problem)
+        # util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -543,7 +574,8 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return state in self.food.asList()
+        # util.raiseNotDefined()
 
 def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int], gameState: pacman.GameState) -> int:
     """
