@@ -376,13 +376,14 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
 
     "*** YOUR CODE HERE ***"
     pos, goalstate = state
-    lowebound_dis = 0
-    for i in range(len(corners)):
-        if(goalstate[i]):
-            continue
-        corner = corners[i]
-        lowebound_dis += abs(corner[0]-pos[0]) + abs(corner[1]-pos[1])
-    return lowebound_dis
+    # lowebound_dis = 0
+    # for i in range(len(corners)):
+    #     if(goalstate[i]):
+    #         continue
+    #     corner = corners[i]
+    #     lowebound_dis += abs(corner[0]-pos[0]) + abs(corner[1]-pos[1])
+    # return lowebound_dis
+    return min(map(lambda x:util.manhattanDistance(corners[x], pos), filter(lambda x: goalstate[x] == False, range(len(corners)))), default=0)
 
     return 0 # Default to trivial solution
 
