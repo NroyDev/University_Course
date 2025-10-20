@@ -55,9 +55,21 @@ int main(int argc, const char** argv){
     const struct dirent* dirent_proc = NULL;
     errno = 0;
     while((dirent_proc = readdir(dir_proc)) != NULL){
-        if(!('0' <= dirent_proc->d_name[0] && dirent_proc->d_name[0] <= '9')){
+        if(dirent_proc->d_name[0] == '\0'){
             continue;
         }
+        const int proc_name_size = strlen(dirent_proc->d_name);
+        int isVaild_name = 1;
+        for(int i = 0; i<proc_name_size&&dirent_proc->d_name[i]!= '\0'; ++i){
+            if(!('0' <= dirent_proc->d_name[i] && dirent_proc->d_name[i] <= '9')){
+                isVaild_name = 0;
+                break;
+            }
+        }
+        if(!isVaild_name){
+            continue;
+        }
+        
         int isOpen_target = 0;
         // 對每個process的fd readlink() 比對是否跟我們要的相符
         // ----- open /proc/PID/fd -----
@@ -82,7 +94,11 @@ int main(int argc, const char** argv){
                 // may no longer exist or permission denied
                 errno = 0;
                 continue;
+            }else if(len >= BUF_SIZE){
+                fprintf(stderr, "Warning, BUF Overflow...\n");
+                continue;
             }
+            
             buf[len] = '\0';
             if(strcmp(buf, path) == 0){         // 找到了！！！
                 isOpen_target = 1;
@@ -109,15 +125,17 @@ int main(int argc, const char** argv){
             strcat(path_PID,"/status");
             FILE* fp = fopen(path_PID, "r");
             if(fp == NULL){
-                fprintf(stdout, "Warning - %s cannot open (may not exist)\n", path_PID);
+                fprintf(stderr, "Warning - %s cannot open (may not exist)\n", path_PID);
+                errno = 0;
                 continue;
             }
 
             while(fscanf(fp,"%s",buf) != EOF){
-                if(strspn(buf,"Name:") == 5){   // found name
+                if(strncmp(buf,"Name:", 5) == 0){   // found name
                     if(fgets(buf,BUF_SIZE,fp) == NULL){
-                        perror("Error - fgets failed to read Name field");
-                        exit(errno);
+                        fprintf(stderr, "Warning - fgets failed to read Name field");
+                        // exit(errno);
+                        break;
                     }
                     if(buf[strlen(buf)-1] == '\n'){
                         buf[strlen(buf)-1] = '\0';
@@ -125,6 +143,7 @@ int main(int argc, const char** argv){
                     fprintf(stdout, "\t%s (%s)\n", buf+1, dirent_proc->d_name);
                 }
             }
+            errno = 0;
             // -------- close /proc/PID/status --------
             if(fclose(fp) == EOF){
                 perror("Error - fclose");

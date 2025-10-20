@@ -35,12 +35,13 @@ uid_t getUID(int argc, const char** argv){
     int s = getpwnam_r(argv[1], &pwd, buf, bufsize, &result);
     if(result == NULL){
         if(s == 0){
-            printf("Not found\n");
+            fprintf(stderr, "User %s Not found\n", argv[1]);
+            exit(-1);
         }else{
             errno = s;
             perror("getpwnam_r");
+            exit(errno);
         }
-        exit(errno);
     }
 
     uid_t ret = pwd.pw_uid;
@@ -69,7 +70,18 @@ int main(int argc, const char** argv){
     struct dirent* dirent_proc = NULL;
     errno = 0;
     while((dirent_proc = readdir(dir_proc)) != NULL){
-        if(!('0' <= dirent_proc->d_name[0] && dirent_proc->d_name[0] <= '9')){
+        if(dirent_proc->d_name[0] == '\0'){
+            continue;
+        }
+        const int proc_name_size = strlen(dirent_proc->d_name);
+        int isVaild_name = 1;
+        for(int i = 0; i<proc_name_size&&dirent_proc->d_name[i]!= '\0'; ++i){
+            if(!('0' <= dirent_proc->d_name[i] && dirent_proc->d_name[i] <= '9')){
+                isVaild_name = 0;
+                break;
+            }
+        }
+        if(!isVaild_name){
             continue;
         }
 
@@ -80,7 +92,7 @@ int main(int argc, const char** argv){
         strcat(path_PID,"/status");
         FILE* fp = fopen(path_PID, "r");
         if(fp == NULL){
-            fprintf(stdout, "Warning - %s cannot open (may not exist)\n", path_PID);
+            fprintf(stderr, "Warning - %s cannot open (may not exist)\n", path_PID);
             continue;
         }
 
@@ -90,30 +102,34 @@ int main(int argc, const char** argv){
         char name[BUF_SIZE];
         int is_target_user = 0;     // flag = true if the process is run by target user
         while(fscanf(fp,"%s",buf) != EOF){
-            if(strspn(buf,"Name:") == 5){   // found name
+            if(strncmp(buf,"Name:", 5) == 0){   // found name
                 if(fgets(buf,BUF_SIZE,fp) == NULL){
-                    perror("Error - fgets failed to read Name field");
-                    exit(errno);
+                    fprintf(stderr ,"Warning - fgets failed to read Name field");
+                    // exit(errno);
+                    break;
                 }
                 if(buf[strlen(buf)-1] == '\n'){
                     buf[strlen(buf)-1] = '\0';
                 }
                 strcpy(name, buf+1);
-            }else if(strspn(buf, "Uid:") == 4){ //found uid
+            }else if(strncmp(buf, "Uid:", 4) == 0){ //found uid
                 uid_t real_uid = 0;
                 if(fscanf(fp, "%u", &real_uid)==EOF){
-                    perror("Error - fscanf");
-                    exit(errno);
+                    fprintf(stderr, "Warning - fscanf");
+                    // exit(errno);
+                    break;
                 }
                 if(fgets(buf,BUF_SIZE,fp) == NULL){
-                    perror("Error - fgets failed to read Name field");
-                    exit(errno);
+                    fprintf(stderr, "Error - fgets failed to read Name field");
+                    // exit(errno);
+                    break;
                 }
                 if(real_uid == uid_target){
                     is_target_user = 1;
                 }
             }
         }
+        errno = 0;
         if(is_target_user){ // output if is target
             fprintf(stdout,"%-20s %s\n", name, dirent_proc->d_name);
         }

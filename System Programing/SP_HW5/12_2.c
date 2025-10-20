@@ -75,7 +75,19 @@ void setProcess_table(struct Process** process_table, const int PID_MAX){
     struct dirent* dirent_proc = NULL;
     errno = 0;
     while((dirent_proc = readdir(dir_proc)) != NULL){
-        if(!('0' <= dirent_proc->d_name[0] && dirent_proc->d_name[0] <= '9')){
+        // check name is vaild
+        if(dirent_proc->d_name[0] == '\0'){
+            continue;
+        }
+        const int proc_name_size = strlen(dirent_proc->d_name);
+        int isVaild_name = 1;
+        for(int i = 0; i<proc_name_size&&dirent_proc->d_name[i]!= '\0'; ++i){
+            if(!('0' <= dirent_proc->d_name[i] && dirent_proc->d_name[i] <= '9')){
+                isVaild_name = 0;
+                break;
+            }
+        }
+        if(!isVaild_name){
             continue;
         }
 
@@ -96,7 +108,10 @@ void setProcess_table(struct Process** process_table, const int PID_MAX){
         strcat(path_PID,"/status");
         FILE* fp = fopen(path_PID, "r");
         if(fp == NULL){
-            fprintf(stdout, "Warning - %s cannot open (may not exist)\n", path_PID);
+            fprintf(stderr, "Warning - %s cannot open (may not exist)\n", path_PID);
+            free(process_table[pid]);
+            process_table[pid] = NULL;
+            errno = 0;
             continue;
         }
 
@@ -104,19 +119,20 @@ void setProcess_table(struct Process** process_table, const int PID_MAX){
         // -------- read /proc/PID/status --------
         char buf[BUF_SIZE];
         while(fgets(buf, BUF_SIZE, fp)){
-            if(strspn(buf,"Name:") == 5){   // found name
+            if(strncmp(buf,"Name:", 5) == 0){   // found name
                 if(buf[strlen(buf)-1] == '\n'){
                     buf[strlen(buf)-1] = '\0';
                 }
                 process_table[pid]->name = (char*)malloc(sizeof(char)*(strlen(buf+5+1)+5+1));
                 strcpy(process_table[pid]->name, buf+5+1);
-            }else if(strspn(buf,"PPid:") == 5){
+            }else if(strncmp(buf,"PPid:", 5) == 0){
                 if(buf[strlen(buf)-1] == '\n'){
                     buf[strlen(buf)-1] = '\0';
                 }
                 process_table[pid]->ppid = stoi(buf+5+1);
             }
         }
+        errno = 0;
         // -------- close /proc/PID/status --------
         if(fclose(fp) == EOF){
             perror("Error - fclose");
@@ -150,6 +166,18 @@ void setProcess_table(struct Process** process_table, const int PID_MAX){
     }
 }
 
+unsigned int intSize(unsigned int i){
+    if(i == 0){
+        return 1;
+    }
+    int size = 0;
+    while(i!=0){
+        i/=10;
+        ++size;
+    }
+    return size;
+}
+
 // print parent-child relation tree
 void print(uid_t pid, char* prefix){
     struct Process* current_process = process_table[pid];
@@ -157,12 +185,13 @@ void print(uid_t pid, char* prefix){
         fprintf(stderr, "Warning - going to invalid pointer in process_table[%d]\n", pid);
         return;
     }
-    // ------------------ print proc name ------------------
+    // ------------------ print proc name pid ------------------
     fprintf(stdout, "%s", current_process->name);
+    fprintf(stdout, "(%d)", current_process->pid);
 
     // ------------------ set prefix for next level ------------------
     int prefix_size = strlen(prefix);
-    const int name_size = strlen(current_process->name);
+    const int name_size = strlen(current_process->name) + intSize(current_process->pid) + 2;    // name(pid)
     if(name_size+prefix_size+3+1>NMAX_PREFIX){
         fprintf(stderr, "Error - prefix out of range\n");
         exit(-1);
