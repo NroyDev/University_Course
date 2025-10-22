@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include "shell.h"
 
+#include <errno.h>
+
 /* Parse a commandline string into an argv array. */
 char ** parse(char *line) {
 
@@ -16,6 +18,7 @@ char ** parse(char *line) {
   	char * token;
   	char **newArgv;
 
+	// ------------------------------------------ 提前離開的狀況 ------------------------------------------
   	/* Nothing entered. */
   	if (line == NULL || strcmp(line,"\n")==0) {
     	return NULL;
@@ -26,14 +29,32 @@ char ** parse(char *line) {
 	 *
 	 * Fill in code.
      */
+	if((token = strtok(line, delim)) == NULL){
+		return NULL;
+	}
 
 
+	// ------------------------------------------ 處理第一個token ------------------------------------------
   	/* Create array with room for first token.
   	 *
 	 * Fill in code.
 	 */
+	// Resize Array(0=>1)
+	count = 1;		// array size
+	if((newArgv = (char**)malloc(sizeof(char*)*count)) == NULL){
+		fprintf(stderr, "Error: malloc - %s\n", strerror(errno));
+		exit(errno);
+	}
+	// malloc install
+	const int token_size = strlen(token)+1;         // include \0
+	if((newArgv[count-1] = (char*)malloc(sizeof(char)* token_size)) == NULL){
+		fprintf(stderr, "Error: malloc - %s\n", strerror(errno));
+		exit(errno);
+	}
+	strcpy(newArgv[count-1], token);
+	fprintf(stdout, "[%d] : %s\n", count-1, token);
 
-
+	// ------------------------------------------ 處理後續的token ------------------------------------------
   	/* While there are more tokens...
 	 *
 	 *  - Get next token.
@@ -42,12 +63,35 @@ char ** parse(char *line) {
 	 * 
   	 * Fill in code.
 	 */
+	while((token = strtok(NULL, delim)) != NULL){
+		// Resize Array
+		++count;
+		if((newArgv = (char**)realloc(newArgv, sizeof(char*)*count)) == NULL){
+			fprintf(stderr, "Error: realloc - %s\n",strerror(errno));
+			exit(errno);
+		}
 
+		// malloc install
+		const int token_size = strlen(token)+1;		// include \0
+		if((newArgv[count-1] = (char*)malloc(sizeof(char)*token_size)) == NULL){
+			fprintf(stderr, "Error: malloc - %s\n", strerror(errno));
+			exit(errno);
+		}
+		strcpy(newArgv[count-1], token);
+		fprintf(stdout, "[%d] : %s\n", count-1, token);
+	}
 
+	// ------------------------------------------ 在最後面放NULL ------------------------------------------
   	/* Null terminate the array and return it.
 	 *
   	 * Fill in code.
 	 */
+	++count;
+	if((newArgv = (char**)realloc(newArgv, sizeof(char*)*count)) == NULL){
+		fprintf(stderr, "Error: realloc - %s\n", strerror(errno));
+		exit(errno);
+	}
+	newArgv[count-1] = NULL;
 
   	return newArgv;
 }
@@ -66,4 +110,11 @@ void free_argv(char **oldArgv) {
 	 *
 	 * Fill in code.
 	 */
+	while(oldArgv[i] != NULL){
+		free(oldArgv[i]);
+		++i;
+	}
+	free(oldArgv);
+
+	return;
 }
