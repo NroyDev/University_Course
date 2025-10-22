@@ -27,6 +27,7 @@ void pipe_and_exec(char **myArgv) {
 
     	case 0:	/* No pipe found in argv array or at end of argv array.
 			See pipe_present().  Exec with whole given argv array. */
+			// fprintf(stderr, "execvp: %s\n", myArgv[0]);
 			if(execvp(myArgv[0], myArgv) == -1){
 				// should not be executed below
 				perror("Error - left command execvp");
@@ -78,11 +79,12 @@ void pipe_and_exec(char **myArgv) {
 						perror("Error - dup2");
 						exit(errno);
 					}
-					if(close(pipefds[1] == -1)){
+					if(close(pipefds[1]) == -1){
 						perror("Error - close");
 						exit(errno);
 					}
 
+					// fprintf(stderr, "execvp: %s\n", left_argv[0]);
 					if(execvp(left_argv[0], left_argv) == -1){
 						// should not be executed below
 						perror("Error - left command execvp");
