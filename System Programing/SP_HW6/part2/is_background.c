@@ -17,5 +17,15 @@ int is_background(char ** myArgv) {
 	 *
 	 * Fill in code.
 	 */
+	int idx = 0;
+	while(myArgv[idx] != NULL){
+		++idx;
+	}
+	if(idx-1>=0 && strcmp(myArgv[idx-1],"&")==0){
+		free(myArgv[idx-1]);
+		myArgv[idx-1] = NULL;
+		return TRUE;
+	}
 
+	 return FALSE;
 }
