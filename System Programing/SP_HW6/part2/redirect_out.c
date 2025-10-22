@@ -53,7 +53,7 @@ int redirect_out(char ** myArgv) {
 		}
 
    		// 3) Cleanup / close unneeded file descriptors.
-		if(close(myArgv[i+1]) == -1){
+		if(close(fd) == -1){
 			return -1;
 		}
 
