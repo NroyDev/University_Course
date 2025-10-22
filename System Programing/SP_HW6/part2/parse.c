@@ -52,7 +52,7 @@ char ** parse(char *line) {
 		exit(errno);
 	}
 	strcpy(newArgv[count-1], token);
-	fprintf(stdout, "[%d] : %s\n", count-1, token);
+	// fprintf(stdout, "[%d] : %s\n", count-1, token);
 
 	// ------------------------------------------ 處理後續的token ------------------------------------------
   	/* While there are more tokens...
@@ -78,7 +78,7 @@ char ** parse(char *line) {
 			exit(errno);
 		}
 		strcpy(newArgv[count-1], token);
-		fprintf(stdout, "[%d] : %s\n", count-1, token);
+		// fprintf(stdout, "[%d] : %s\n", count-1, token);
 	}
 
 	// ------------------------------------------ 在最後面放NULL ------------------------------------------
