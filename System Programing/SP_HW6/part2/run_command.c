@@ -48,8 +48,16 @@ void run_command(char **myArgv) {
     	case 0 :
 
       		/* Redirect input and update argv. */
+			if(redirect_in(myArgv) == -1){
+				perror("Error - redirect_in");
+				exit(errno);
+			}
 
       		/* Redirect output and update argv. */
+			if(redirect_out(myArgv) == -1){
+				perror("Error - redirect_out");
+				exit(errno);
+			}
 
       		pipe_and_exec(myArgv);
       		exit(errno);
