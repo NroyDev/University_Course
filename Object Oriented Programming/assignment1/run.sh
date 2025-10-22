@@ -8,10 +8,12 @@
 # python3 pacman.py --layout mediumSafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
 # python3 pacman.py --layout bigSafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
 
+# AnyFoodSearchProblem
 agentArgs='fn=breadthFirstSearch,prob=AnyFoodSearchProblem'
 python3 pacman.py --layout tinySafeSearch --pacman ClosestDotSearchAgent  --agentArgs "$agentArgs"
 python3 pacman.py --layout mediumSafeSearch --pacman ClosestDotSearchAgent  --agentArgs "$agentArgs"
 python3 pacman.py --layout bigSafeSearch --pacman ClosestDotSearchAgent  --agentArgs "$agentArgs"
+echo -------------------------------------------------------------------------------------
 
 # FoodSearchProblem
 agentArgs='fn=aStarSearch,heuristic=foodHeuristic,prob=FoodSearchProblem'
