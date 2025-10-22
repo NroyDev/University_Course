@@ -5,6 +5,7 @@ CFLAG	+=	-Wall -Wextra
 all:
 	$(CC) $(FLAG) -o hostinfo hostinfo.c
 	$(CC) $(FLAG) -o mydate mydate.c
+	$(CC) $(FLAG) -o printdir printdir.c
 
 clean:
-	rm hostinfo mydate
+	rm hostinfo mydate printdir
