@@ -27,6 +27,11 @@ void pipe_and_exec(char **myArgv) {
 
     	case 0:	/* No pipe found in argv array or at end of argv array.
 			See pipe_present().  Exec with whole given argv array. */
+			if(execvp(myArgv[0], myArgv) == -1){
+				// should not be executed below
+				perror("Error - left command execvp");
+				exit(errno);
+			}
       		break;
 
     	default:	/* Pipe in the middle of argv array.  See pipe_present(). */
@@ -35,16 +40,24 @@ void pipe_and_exec(char **myArgv) {
        		 * Terminate first half of vector.
 			 *
        		 * Fill in code. */
+			left_argv = myArgv;
+			free(myArgv[pipe_argv_index]);
+			myArgv[pipe_argv_index] = NULL;
+			right_argv = myArgv+pipe_argv_index+1;	// 不用擔心超出範圍 pipe_present() 保證超出範圍會回傳-1
 
       		/* Create a pipe to bridge the left and right halves of the vector. 
 			 *
 			 * Fill in code. */
+			if(pipe(pipefds) == -1){
+				perror("Error - pipe");
+				exit(errno);
+			}
 
       		/* Create a new process for the right side of the pipe.
        		 * (The left side is the running "parent".)
        		 *
 			 * Fill in code to replace the underline. */
-      		switch(_______) {
+      		switch(fork()){
 
         		case -1 :
 	  				break;
@@ -57,6 +70,25 @@ void pipe_and_exec(char **myArgv) {
 	 	 			 * - Exec the left command.
 					 *
 					 * Fill in code. */
+					if(close(pipefds[0]) == -1|| close(STD_OUTPUT) == -1){	// close pipe read, close stdout
+						perror("Error - close");
+						exit(errno);
+					}
+					if(dup2(pipefds[1], STD_OUTPUT) == -1){
+						perror("Error - dup2");
+						exit(errno);
+					}
+					if(close(pipefds[1] == -1)){
+						perror("Error - close");
+						exit(errno);
+					}
+
+					if(execvp(left_argv[0], left_argv) == -1){
+						// should not be executed below
+						perror("Error - left command execvp");
+						exit(errno);
+					}
+
 	  				break;
 
         		/* Listening child. */
@@ -67,6 +99,18 @@ void pipe_and_exec(char **myArgv) {
 				  	 * - Exec command on right side of pipe and recursively deal with other pipes
 					 *
 					 * Fill in code. */
+					if(close(pipefds[1]) == -1|| close(STD_INPUT) == -1){	// close pipe write, close stdin
+						perror("Error - close");
+						exit(errno);
+					}
+					if(dup2(pipefds[0], STD_INPUT) == -1){
+						perror("Error - dup2");
+						exit(errno);
+					}
+					if(close(pipefds[0])  == -1){
+						perror("Error - close");
+						exit(errno);
+					}
 					 
           			pipe_and_exec(&myArgv[pipe_argv_index+1]);
 			}
