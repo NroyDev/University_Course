@@ -42,18 +42,43 @@ int main(int argc, char **argv) {
 		 * and put it in the text field at the right offset.  Pad the unused chars
 		 * in both fields with nulls.
 		 */
+		line[0] = '\0';
+		dr = blank;
 
 		/* Read word and put in record.  Truncate at the end of the "word" field.
 		 *
 		 * Fill in code. */
+		fgets(line, BIGLINE, in);
+		if(line[0] == '\0'){
+			break;
+		}
+		int word_size = strlen(line);
+		if(word_size-1>=0 && line[word_size-1]=='\n'){
+			line[word_size-1] = '\0';
+			--word_size;
+		}
+		strncpy(dr.word, line, WORD-1);	// turncate & pad unused char with null bye
 
 		/* Read definition, line by line, and put in record.
 		 *
 		 * Fill in code. */
+		int text_size = 0;
+		while(fgets(line, BIGLINE, in) != NULL && strcmp("\n",line) != 0){
+			int line_size = strlen(line);
+			if(line_size-1>=0 && line[line_size-1]=='\n'){
+				line[line_size-1] = '\0';
+				--line_size;
+			}
+			char* next_start = strncpy(dr.text+text_size,line, TEXT-1-text_size);	// turncate & pad unused char with null bye
+			text_size = next_start - dr.text;
+		}
 
 		/* Write record out to file.
 		 *
 		 * Fill in code. */
+		for(int i=0;i<sizeof(Dictrec);++i){
+			putc(((unsigned char*)&dr)[i], out);
+		}
 	}
 
 	fclose(in);
