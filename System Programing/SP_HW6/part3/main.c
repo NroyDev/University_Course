@@ -26,7 +26,8 @@ int main(int argc, char **argv) {
 
 	while(1) {
 		printf("What word do you want : ");
-		gets(tryit.word);
+		// gets(tryit.word);		// 這被deprecated掉了
+		fgets(tryit.word, WORD-1, stdin);
 		switch(lookup(&tryit,argv[1]) ) {
 			case FOUND:
 				printf("%s : %s\n",tryit.word,tryit.text);
