@@ -52,10 +52,6 @@ int main(int argc, const char** argv){
         p.y     = y;
         points.push_back(p);
     }
-    std::vector<long long> idxs;
-    for(long long i=0; i<(long long)points.size(); ++i){
-        idxs.push_back(i);
-    }
     // pre calculate distance
     double** dist = new double*[points.size()];   // dist[a][b] = distance from a to b
     for(long long i=0;i<(long long)points.size();++i){
@@ -71,33 +67,49 @@ int main(int argc, const char** argv){
     }
 
     // ----------- Greedy -----------
-    double shortest_dist = 0;
+    double shortest_dist = 1.0/0.0;
     std::vector<long long> shortest_path;
-    shortest_path.push_back(0);
-    long long from = 0;
-    idxs.erase(idxs.begin());
-    while(!idxs.empty()){
-        auto next = idxs.begin();
-        const long long to = *next;
-        // double next_dist = sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y)); //到下個點最短距離;
-        double next_dist = dist[from][to]; //到下個點最短距離;
-        for(auto it = idxs.begin()+1; it!=idxs.end(); ++it){
-            const long long to = *it;
-            // double dist = sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y));
-            double distance = dist[from][to];
-            if(distance < next_dist){
-                next = it;
-                next_dist = distance;
-            }
+    
+    for(long long start=0;start<(long long)points.size(); ++start){
+        std::vector<long long> idxs;
+        for(long long i=0; i<(long long)points.size(); ++i){
+            idxs.push_back(i);
         }
-        shortest_dist += next_dist;
-        shortest_path.push_back(*next);
-        from = *next;
-        idxs.erase(next);
+        double path_dist = 0;
+        std::vector<long long> path;
+
+        path.push_back(start);
+        long long from = start;
+        idxs.erase(idxs.begin()+start);
+        while(!idxs.empty()){
+            auto next = idxs.begin();
+            const long long to = *next;
+            // double next_dist = sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y)); //到下個點最短距離;
+            double next_dist = dist[from][to]; //到下個點最短距離;
+            for(auto it = idxs.begin()+1; it!=idxs.end(); ++it){
+                const long long to = *it;
+                // double dist = sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y));
+                double distance = dist[from][to];
+                if(distance < next_dist){
+                    next = it;
+                    next_dist = distance;
+                }
+            }
+            path_dist += next_dist;
+            path.push_back(*next);
+            from = *next;
+            idxs.erase(next);
+        }
+        long long to = start;
+        // path_dist += sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y));
+        path_dist += dist[from][to];
+        if(path_dist<shortest_dist){
+            shortest_path = path;
+            shortest_dist = path_dist;
+        }
     }
-    long long to = 0;
-    // shortest_dist += sqrt((to.x-from.x)*(to.x-from.x) + (to.y-from.y)*(to.y-from.y));
-    shortest_dist += dist[from][to];
+    
+
     // 回收空間
     for(long long i=0;i<(long long)points.size();++i){
         delete[] dist[i];
