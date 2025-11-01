@@ -45,8 +45,17 @@ Signal 示意圖：
 
 - 可以透過 setitimer() 在 it_value.tv_sec 秒後，固定每 it_interval.tv_sec 秒做alarm()
 - 見 **Module 6.pdf, slide 23 of 26**
+- pause() Pause整個process直到有個signal signal 它。
 
 
 # Threads(Ch.07)
 - thread 不會共用 stack segement
 - 把資料放在 golbal(Data Segment)，在threads間可以共用，但要注意 race condition
+- 用 share memory 的方式共享記憶體很方便，後面也常會這樣做，但要注意 race condition。
+- pthread UNIX 用來建立 thread 的 library
+- pthread_create() 建立一個 thread
+- 可以傳遞多參數，彈藥一個結構包起來。
+- 處理 race condition => 用鎖
+- pthread_mutex_lock() pthread_mutex_trylock() pthread_mutex_unlock()
+- sem_wait() sem_trywait() sem_post()
+- 假設有五台印表機，印表機是有限資源，使用時必須用鎖鎖起來，如果用mutex管理，使用時候會每台都要問，假設有更多台，會很麻煩 => 所以可以用 semphore 管理
