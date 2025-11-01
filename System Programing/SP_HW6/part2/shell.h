@@ -13,3 +13,8 @@ int redirect_out(char **);
 int redirect_in(char **);
 int pipe_present(char **);
 void pipe_and_exec(char **);
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
