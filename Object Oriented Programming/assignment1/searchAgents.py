@@ -383,7 +383,10 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     #     corner = corners[i]
     #     lowebound_dis += abs(corner[0]-pos[0]) + abs(corner[1]-pos[1])
     # return lowebound_dis
-    return min(map(lambda x:util.manhattanDistance(corners[x], pos), filter(lambda x: goalstate[x] == False, range(len(corners)))), default=0)
+    # ----------------------------- strategy 1 -----------------------------
+    # return min(map(lambda x:util.manhattanDistance(corners[x], pos), filter(lambda x: goalstate[x] == False, range(len(corners)))), default=0)
+    # ----------------------------- strategy 2 -----------------------------
+    return max(map(lambda x:util.manhattanDistance(corners[x], pos), filter(lambda x: goalstate[x] == False, range(len(corners)))), default=0)
 
     return 0 # Default to trivial solution
 
@@ -501,10 +504,19 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     return ret
 
     # ----------------------------- old strategy -----------------------------
-        # print(len(foodGrid_list))
+    # foodGrid_list = foodGrid.asList()
+    # foodGrid_list.append(position)
     # size = len(foodGrid_list)
     # if(size > 0):
     #     return (min(map(lambda foodPos: util.manhattanDistance(foodPos, position), foodGrid_list))+size-1)
+    # else:
+    #     return 0
+    # ----------------------------- strategy 2 -----------------------------
+    # foodGrid_list = foodGrid.asList()
+    # foodGrid_list.append(position)
+    # size = len(foodGrid_list)
+    # if(size > 0):
+    #     return (max(map(lambda foodPos: util.manhattanDistance(foodPos, position), foodGrid_list))+size-1)
     # else:
     #     return 0
 

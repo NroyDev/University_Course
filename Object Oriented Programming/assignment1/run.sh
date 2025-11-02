@@ -22,9 +22,9 @@ python3 pacman.py --layout smallSafeSearch --pacman SearchAgent --agentArgs "$ag
 python3 pacman.py --layout mediumSafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
 echo -------------------------------------------------------------------------------------
 agentArgs='fn=uniformCostSearch,prob=FoodSearchProblem'
-python3 pacman.py --layout trickySearch --pacman SearchAgent --agentArgs "$agentArgs"
-python3 pacman.py --layout trickySearch --pacman SearchAgent --agentArgs "$agentArgs"
-python3 pacman.py --layout trickySearch --pacman SearchAgent --agentArgs "$agentArgs"
+python3 pacman.py --layout tinySafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
+python3 pacman.py --layout smallSafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
+python3 pacman.py --layout mediumSafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
 echo -------------------------------------------------------------------------------------
 agentArgs='fn=breadthFirstSearch,prob=FoodSearchProblem'
 python3 pacman.py --layout tinySafeSearch --pacman SearchAgent --agentArgs "$agentArgs"
