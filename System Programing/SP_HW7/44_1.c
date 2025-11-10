@@ -39,13 +39,9 @@ void parent(int pipefd1[], int pipefd2[]){
         exit(errno);
     }
 
-    // ----------------- close fd fp -----------------
+    // ----------------- close fp -----------------
     if(fclose(fwrite) != 0 || fclose(fread) != 0){
         perror("Error - fclose()");
-        exit(errno);
-    }
-    if(close(pipefd1[1]) == -1 || close(pipefd2[0])==-1){
-        perror("Error - close()");
         exit(errno);
     }
 
@@ -89,13 +85,9 @@ void child(int pipefd1[], int pipefd2[]){
         exit(errno);
     }
 
-    // ----------------- close fd fp -----------------
+    // ----------------- close fp -----------------
     if(fclose(fwrite) != 0 || fclose(fread) != 0){
         perror("Error - fclose()");
-        exit(errno);
-    }
-    if(close(pipefd1[0]) == -1 || close(pipefd2[1])==-1){
-        perror("Error - close()");
         exit(errno);
     }
     return;
