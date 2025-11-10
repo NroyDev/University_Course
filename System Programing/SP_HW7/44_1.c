@@ -6,7 +6,7 @@
 #define BUF_SIZE 4096
 
 void parent(int pipefd1[], int pipefd2[]){
-    fprintf(stdout, "Parent Start working...\n");
+    // fprintf(stdout, "Parent Start working...\n");
     // pipefd1: parent => child
     // pipefd2: child  => parent
     FILE* fwrite = fdopen(pipefd1[1], "w");
@@ -49,7 +49,7 @@ void parent(int pipefd1[], int pipefd2[]){
 }
 
 void child(int pipefd1[], int pipefd2[]){
-    fprintf(stdout, "Child Start working...\n");
+    // fprintf(stdout, "Child Start working...\n");
     // pipefd1: parent => child
     // pipefd2: child  => parent
     FILE* fwrite = fdopen(pipefd2[1], "w");
