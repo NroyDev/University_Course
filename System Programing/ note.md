@@ -61,6 +61,8 @@ Signal 示意圖：
 - 假設有五台印表機，印表機是有限資源，使用時必須用鎖鎖起來，如果用mutex管理，使用時候會每台都要問，假設有更多台，會很麻煩 => 所以可以用 semphore 管理
 - [參考連結](https://ithelp.ithome.com.tw/articles/10280830)
 
+- compile 的時候要加上 `-lpthread` (有些時候不加會 compile 不過？)
+
 # IPC (Interprocess communication) (Ch.08)
 - 我們知道 IPC 前，我們可以透過檔案來傳送檔案
 - pipe() 傳輸資料
@@ -149,4 +151,91 @@ int main(int argc, char *argv[]) {
     write(1, addr, statbuf.st_size);
     return(0);
 }
-``
+```
+
+- Shareed Memory 考慮：
+    - Size ? 共享前必須決定好大小 (file size)
+    - Mutex ? 有時候為了防止 race condition，必須 Synchronize
+        - 同步手段
+        - thread control
+        - semaphore (named, unnamed)
+        - file control
+- 只有 shared memory 可以作到多 process 共享記憶體
+- 用 `munmap` 可以取消 `mmap` 造出的共享記憶體
+- 用 `ftruncate` 擴大檔案大小 (老師說要記) (給`mmap`用？)
+    - 將檔案大小 括大為 pagesize 的六倍
+        ```c   
+        ftruncate(fd, (off_t)(6 * pagesize));
+        ```
+- `msync()` 可以用來立即同步 shared memory 的記憶體
+    - 雖然基本上會同步，但是因為 `mmap` 依賴於 file，而由於 OS 的設計， disk 通常會累積一段再一同寫入，導致有時不會那麼同步。
+ 
+ - `mmap` 最骨子裡的想法就是透過 _**檔案**_ 共享
+ - `mmap` 是 POSIX 的解法，在 SystemV 中，也有 shared memory 的函式，不是 `mmap` 但概念很像
+    - 見 Module 10, Slide 9
+    - `shmget()` `shmat()` `shmctl()` `shmdt()`
+    - Example1(Module 10, Slide 11) 示範了 P1(其中一邊Process)共享記憶體的方式：
+        1. 建立足夠大的 file （Line  3 ~ Line 8）
+        2. 設定共享          (Line 10 ~ Line 13)
+        3. 使用shared memory (Line 15)
+        4. 刪掉              (Line 17 Line 18)
+        - (另一邊不須建立檔案 只要設定共享即可)
+        - Example2 示範shared memory on array
+- 有些很舊的系統是用 SystemV 的 shared memory
+- POSIX 對應 SystemV
+    |         | Open Connection | Set Size      | Attach    | Detach     | Remove rendezvous        |
+    | ------- | --------------- | ------------- | --------- | ---------- | ------------------------ |
+    | POSIX   | `shm_open()`    | `ftruncate()` | `mmap()`  | `munmap()` | `shm_unlink()`           |
+    | SystemV | `shmget()`      | `shmget()`    | `shmat()` | `shmdt()`  | `shmctl() with IPC_RMID` |
+
+
+---
+# Synchronization (Ch.11)
+- Process synchronization
+    - Signals
+    - Record locking (fnctl(2))
+    - SystemV semaphores
+    - mutex lock
+    - reader-writer lock
+        - 改善 mutex lock，適合多 reader 單一 writer 的情境，reader 一起讀
+    - semaphore
+    - condition variable
+        - eg. 當共享一個 stack，你搶到了 lock 但不一定有辦法寫(滿了)或讀(空的) => 用 condition variable
+- Thread syncronization
+    - mutex lock
+        ```c
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        pthread_mutex_lock(&mutex);
+        pthread_mutex_unlock(&mutex);
+        ```
+    - reader writer lock
+        - 適合多 reader 單一 writer 的情境
+        ```c
+        pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+        pthread_rwlock_rdlock(&rwlock);     // for reader
+        pthread_rwlock_wrlock(&rwlock);     // for writer
+        pthread_rwlock_unlock(&rwlock);
+        ```
+- 小提醒：
+    - 在使用 pthread 時，最好在 compile 的時候加上 `-lpthread` 的 link
+    - 用 ??? 的時候加上 `-lrt` 的 link
+
+- Condition Variables
+    - 不是所有時候，搶到使用權，就能作到想作到的運算
+        - eg. 當共享一個 stack，你搶到了 lock 但不一定有辦法寫(滿了)或讀(空的)
+    - 搶到使用權，發現不能用 => 釋放出來 (不然會deadlock)
+    - mutex lock 和 condition lock 同時出現
+
+```
+    ------------        Scheduler        --------------------
+    | Runnable |   <----------------->   |      Running     |
+    ------------                   ..../ --------------------
+      ^                        .../                       |
+      | Get mutex lock     .../                           | pthread_cond_wait()
+      |                .../ pthread_mutex_lock()          v
+    --------------<---/                  --------------------
+    | Wait for   | pthread_cond_signal() | Wait for         |
+    | mutex lock | <------------------   | condition change |
+    --------------                       --------------------
+
+```
