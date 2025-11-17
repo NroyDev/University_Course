@@ -1,4 +1,6 @@
 #include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
 #include<signal.h>
 #define SIGERR_RET ((void(*)(int))-1)
 #define SIG_HOLD ((void(*)(int))2)
@@ -149,3 +151,51 @@ void (*sigset(int sig, void (*handler)(int)))(int){
 }
 
 // ps: 這邊的註解大部分都是從課本操下來的 (The Linux Programming Interface - Signals: Advanced Features p.475)
+
+
+void myhandler(int sig){
+    printf("SIGNAL RECV: %d\n", sig);
+}
+
+int main(){
+    sigignore(SIGUSR1);
+    kill(getpid(), SIGUSR1);
+    printf("using sigignore\n");
+    kill(getpid(), SIGUSR1);
+    printf("-------------------------------------\n");
+    printf("using sigset\n");
+    if(sigset(SIGUSR1, myhandler)== (void(*)(int))-1){
+        perror("sigset");
+        exit(-1);
+    }
+    kill(getpid(), SIGUSR1);
+    printf("-------------------------------------\n");
+    if(sigset(SIGINT, myhandler)== (void(*)(int))-1){
+        perror("sigset");
+        exit(-1);
+    }
+    printf("Press Ctrl + C\n");
+    printf("Before sigpause\n");
+    sigpause(SIGINT);
+    printf("After sigpause\n");
+
+
+    printf("-------------------------------------\n");
+    printf("using sigset to Defautlt\n");
+    if(sigset(SIGUSR1, SIG_DFL)== (void(*)(int))-1){
+        perror("sigset");
+        exit(-1);
+    }
+    
+    printf("sighold\n");
+    if(sighold(SIGUSR1) == -1){
+        perror("sighold");
+        exit(-1);
+    }
+    kill(getpid(), SIGUSR1);
+    // printf("sigrelease\n");
+    // if(sigrelse(SIGUSR1) == -1){           // 如果 release 會signal 會送到 然後沒有 signal handler => terminate
+    //     perror("sigrelease");
+    //     exit(-1);
+    // }
+}
