@@ -29,11 +29,12 @@ main:
         CMP     r1, #'a'
         BLT     LOOP
         CMP     r1, #'z'
-        LDRLT   r0, =PRINTF_ARG0
-        BLLT    printf
+        LDRLE   r0, =PRINTF_ARG0
+        BLLE    printf
         B       LOOP
     EXIT:
 
+    MOV     r0, #0
     LDMFD   sp!, {r4}        @ restore callee saved register
 @epilogue
     SUB     sp, fp, #4
@@ -42,4 +43,5 @@ main:
 
 @data section
 PRINTF_PREFIX:  .asciz "prog1 result: "
-PRINTF_ARG0:    .asciz "%c\0"
+PRINTF_ARG0:    .asciz "%c"
+.end
