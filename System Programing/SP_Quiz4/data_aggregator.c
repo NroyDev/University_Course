@@ -44,7 +44,7 @@ int stoi(const char* str){
 
 void push(struct Element data, void* ptr){
     struct SharedStack* header = ptr;
-    struct Element* buffer = ptr+sizeof(header);
+    struct Element* buffer = (struct Element*)((char*)ptr + sizeof(struct SharedStack));
     if(sem_wait(&(header->empty_slots))==-1 || sem_wait(&(header->mutex))){
         perror("sem_wait");
         exit(-1);
@@ -62,7 +62,7 @@ void push(struct Element data, void* ptr){
 
 struct Element pop(void* ptr){
     struct SharedStack* header = ptr;
-    struct Element* buffer = ptr+sizeof(header);
+    struct Element* buffer = (struct Element*)((char*)ptr + sizeof(struct SharedStack));
     if(sem_wait(&(header->full_slots))==-1 || sem_wait(&(header->mutex))){
         perror("sem_wait");
         exit(-1);
