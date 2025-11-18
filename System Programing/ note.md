@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
         ```
 - 小提醒：
     - 在使用 pthread 時，最好在 compile 的時候加上 `-lpthread` 的 link
-    - 用 ??? 的時候加上 `-lrt` 的 link
+    - 用 shm_open()、ftruncate()、mmap() ？？？ 的時候加上 `-lrt` 的 link
 
 - Condition Variables
     - 不是所有時候，搶到使用權，就能作到想作到的運算
@@ -237,5 +237,40 @@ int main(int argc, char *argv[]) {
     | Wait for   | pthread_cond_signal() | Wait for         |
     | mutex lock | <------------------   | condition change |
     --------------                       --------------------
-
 ```
+
+- 初始化
+    ```c
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t conditionVar = PTHREAD_COND_INITIALIZER;
+    ```
+- condition wait 
+    - wait 直到別人 signal（用conditionVar signal它）
+    - 副作用：會先 unlock mutex => 讓別人用狀態才有可能改變，被 signal 再搶
+    ```c
+    pthread_cond_wait(&conditionVar, &mutex);
+    ```
+- condition signal
+    - 讓 condition 的人可以 wake up
+    ```c
+    pthread_cond_signal(&conditionVar);
+    ```
+
+- condition wait 後面有個 signal（狀態改變 => 讓condition wait有機會起來）
+- mutex_lock 的時候如果搶不到，則有點類似 pause 的狀態 (pause 是任何signal都有可能叫起來它)
+
+- Semaphore
+    - init
+    ```c
+    sem_t bankLine;
+    sem_init(&bankLine, THREADS_OF_THIS_PROCESS,NUM_TELLERS);
+    ```
+    - wait (搶資源)
+    ```c
+    sem_wait(&bankLine)
+    sem_trywait(&bankLine);
+    ```
+    - getVal
+    ```c
+    sem_getvalue(&bankLine, &availableTellers);
+    ```
