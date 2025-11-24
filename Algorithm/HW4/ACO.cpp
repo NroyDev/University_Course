@@ -27,7 +27,10 @@
 
 
 namespace ACO{
-    int run_times, iteration, population_size, alpha, beta, rho, Q, evaluation_max, eval_count;
+    // parameter ppt defined
+    int run_times, iteration, population_size, evaluation_max, eval_count;
+    double alpha, beta, rho, Q;
+    // other variable
     int size;
     double C;
     double** table = nullptr;
