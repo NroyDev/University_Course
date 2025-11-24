@@ -33,7 +33,7 @@ namespace ACO{
     // other variable
     int size;
     double C;
-    double** table = nullptr;
+    double** tau = nullptr;
     double** dist = nullptr;
 
     void Initialization(const std::vector<Point>& points){
@@ -47,11 +47,11 @@ namespace ACO{
         // Pheromone importance factor
         alpha = 1;
         // Heuristic Factor (1/distance)
-        beta = 1;
+        beta = 3;
         // Pheromone evaporation rate
-        rho = 0.75;
+        rho = 0.5;
         // Constant
-        Q = 1;
+        Q = 100;
         // Maximum evaluation times per run
         evaluation_max = 10000*points.size();
         eval_count = 0;
@@ -63,7 +63,7 @@ namespace ACO{
         // ------------------------- initialize pheromone trails table -------------------------
         for(int i=0;i<size;++i){
             for(int j=0;j<size;++j){
-                table[i][j] = C;
+                tau[i][j] = C;
             }
         }
     }
@@ -96,6 +96,7 @@ namespace ACO{
     }
 
     void ConstructAntSolution(std::vector<int>& ant_path, double& path_dist){
+        path_dist = 0;
         std::set<int> non_visited;
         for(int i=0;i<size;++i){
             non_visited.insert(i);
@@ -104,10 +105,10 @@ namespace ACO{
         int current = rand()%size;  // random as start
         ant_path.push_back(current);
         non_visited.erase(current);
-        for(int i=0;i<size;++i){    // pass size nodes
-            double de = 1;
+        while(!non_visited.empty()){
+            double de = 0;
             for(const auto& l:non_visited){
-                de += pow(table[current][l], alpha)*pow(1/dist[current][l], beta);
+                de += pow(tau[current][l], alpha)*pow(1/dist[current][l], beta);
             }
             if(de==0){
                 throw std::runtime_error("In ConstructAntSolution: divide zero. (de)");
@@ -116,18 +117,16 @@ namespace ACO{
             std::vector<std::pair<int, double> > P; 
             double nu = 1;
             for(const auto& j:non_visited){
-                nu = pow(table[current][j], alpha)+pow(1/dist[current][j], beta);
+                nu = pow(tau[current][j], alpha)*pow(1/dist[current][j], beta);
                 P.push_back(std::make_pair(j, nu/de));
             }
 
-            if(!non_visited.empty()){
-                int next = randSelect(P);
-                ant_path.push_back(next);
-                non_visited.erase(next);
-                path_dist += dist[current][next];
+            int next = randSelect(P);
+            ant_path.push_back(next);
+            non_visited.erase(next);
+            path_dist += dist[current][next];
 
-                current = next;
-            }
+            current = next;
         }
         path_dist += dist[current][ant_path[0]];
         ant_path.push_back(ant_path[0]);
@@ -136,9 +135,9 @@ namespace ACO{
     void Update_pheromones(std::vector<int>* ant_paths, std::vector<double>& L){
         for(int i=0;i<size;++i){
             for(int j=0;j<size;++j){
-                table[i][j] = (1-rho)*table[i][j];
+                tau[i][j] = (1-rho)*tau[i][j];
                 for(int m=0;m<population_size;++m){
-                    table[i][j] += Q/L[m];
+                    tau[i][j] += Q/L[m];
                 }
             }
         }
@@ -149,9 +148,9 @@ namespace ACO{
 
         // allocate space
         dist = new double*[size];
-        table = new double*[size];
+        tau = new double*[size];
         for(int i = 0; i < size; ++i){
-            table[i] = new double[size];
+            tau[i] = new double[size];
             dist[i] = new double[size];
             dist[i][i] = 0;
         }
@@ -169,15 +168,15 @@ namespace ACO{
 
     void DisAllocate(){
         for(int i=0;i<size;++i){
-            delete[] table[i];
-            table[i] = nullptr;
+            delete[] tau[i];
+            tau[i] = nullptr;
             delete[] dist[i];
             dist[i] = nullptr;
         }
-        delete[] table;
+        delete[] tau;
         delete[] dist;
 
-        table   = nullptr;
+        tau   = nullptr;
         dist    = nullptr;
     }
 
