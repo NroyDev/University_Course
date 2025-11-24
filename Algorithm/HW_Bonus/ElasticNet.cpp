@@ -172,45 +172,42 @@ namespace ElasticNet{
         path.push_back(path.at(0));
     }
 
-    
-    void plot(const char* title, const int run, const int iter){
-        // ------------------------ open pipe with gnuplot ------------------------
-        FILE *gp = NULL;
-        // popen: fork() and pipe()
-        // 透過 pipe 跟 gnuplot 打交道
+    FILE *gp = NULL;
+    void StartPlot(const char* title, const int run){
+        gp = NULL;
         if((gp = popen("gnuplot -p", "w")) == NULL){
-            fprintf(stderr, "[plot] Error: popen - %s\n", strerror(errno));
+            perror("[plot] Error: popen");
             exit(errno);
         }
-        
-        // ------------------------ plot ------------------------
-        fprintf(gp, "set terminal push\n");     // 儲存當前設定
-        fprintf(gp, "set terminal pngcairo size 600, 600\n");
         char fig_path[256];
-        sprintf(fig_path, "./output/%s_%02d_%05d.png", title, run, iter);
+        sprintf(fig_path, "./output/%s_%02d.gif", title, run);
+        fprintf(gp, "set terminal gif animate delay 10 loop 0 size 600, 600\n");
         fprintf(gp, "set output '%s'\n", fig_path);
-        fprintf(gp, "set title '%s'\n", title);
-        fprintf(gp, "set xlabel 'x軸'\n");
-        fprintf(gp, "set ylabel 'y軸'\n");
         fprintf(gp, "set xrange [0:1]\n");
         fprintf(gp, "set yrange [0:1]\n");
+        fflush(gp);
+    }
 
-        fprintf(gp, "plot '-' with points title 'x', '-' with linespoints title 'y'\n");   // 下了這個指令後 下面就要輸入數據
+    void PlotFrame(const char* title, const int iter){
+        fprintf(gp, "set title '%s (Frame: %d)'\n", title, iter);
+        fprintf(gp, "plot '-' with points title 'x', '-' with linespoints title 'y'\n");
+
         for(const auto& k:x){
             fprintf(gp, "%lf %lf\n", k.x, k.y);
         }
-        fprintf(gp, "e\n"); // 資料x結束
+        fprintf(gp, "e\n");
         for(const auto& k:y){
             fprintf(gp, "%lf %lf\n", k.x, k.y);
         }
-        fprintf(gp, "%lf %lf\n", y[0].x, y[0].y);
-        fprintf(gp, "e\n"); // 資料y結束
+        fprintf(gp, "%lf %lf\n", y[0].x, y[0].y); 
+        fprintf(gp, "e\n");
 
+        fflush(gp);
+    }
+    
+    void StopPlot(){
         fprintf(gp, "unset output\n");
-        // ------------------------ flush and close ------------------------
-        fflush(gp);     // flush buffer
         pclose(gp);
-        return;
     }
 
     ElasticNet_RET ElasticNet(const std::vector<Point>& points){
@@ -219,11 +216,13 @@ namespace ElasticNet{
 
         run_times = 30;
         for(int r=0; r<run_times; ++r){
+            StartPlot("TSP", r);
             Initialization(points);
             for(int i=0;i<iteration && eval_count<evaluation_max; ++i){
                 if(i%100==0){
                     std::cout << "[Round: " << r << "/" << run_times << ", iter: " << i << "/" << iteration << "] " << ret.shortest_dist << " " << K << std::endl;
-                    plot("TSP", r, i);
+                    // plot("TSP", r, i);
+                    PlotFrame("TSP", i);
                 }
                 Update();
                 if(i%K_iter==K_iter-1){     // to lower K
@@ -238,6 +237,7 @@ namespace ElasticNet{
                 ret.shortest_dist = path_dist;
                 ret.shortest_path = path;
             }
+            StopPlot();
         }
 
         return ret;
