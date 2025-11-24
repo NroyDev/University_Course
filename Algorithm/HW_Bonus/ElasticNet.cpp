@@ -21,7 +21,7 @@ namespace ElasticNet{
     void Initialization(const std::vector<Point>& points){
         // ------------------------- Set parameters -------------------------
         // Total number of algorithm runs
-        run_times = 1;
+        run_times = 30;
         // Maximum iterations per run
         iteration = 10000;
         // Maximum evaluation times per run
@@ -33,7 +33,7 @@ namespace ElasticNet{
         M = 2.5 * N;    // 論文上 是這樣設定的
         //
         alpha = 0.2;
-        beta = 2.0;
+        beta = 1.5;
         K = 0.2;
         K_iter = N; // K: N iter to lower
         K_prod = 0.99; // K: K*=K_prod every time to lower
@@ -61,7 +61,13 @@ namespace ElasticNet{
         y.clear();
         double radius = 0.1;        // 半徑
         Point center;
-        center.x = center.y = 0.5;
+        center.x = center.y = 0;
+        for(int i=0;i<N;++i){
+            center.x += x.at(i).x;
+            center.y += x.at(i).y;
+        }
+        center.x /= N;
+        center.y /= N;
         double detla_angle = 2*M_PI/M;
         for(int i=0;i<M;++i){
             double angle = detla_angle*i;
@@ -110,6 +116,7 @@ namespace ElasticNet{
 
     void Update(){
         Compute_weight();
+        std::vector<Point> new_y = y;
         for(int j=0;j<M;++j){
             Point delta;
 
@@ -123,15 +130,16 @@ namespace ElasticNet{
             delta.y *= alpha;
 
             // right part of formula
-            int idx1 = j+1 % M;
+            int idx1 = (j+1) % M;
             int idx2 = (j+M-1) % M;   // 哭阿 C 的 -1 % 2 == -1
-            delta.x += beta*K*(y[idx1].x+y[idx2].x-2*y[j].x);
-            delta.y += beta*K*(y[idx1].y+y[idx2].y-2*y[j].y);
+            delta.x += beta*K*(y.at(idx1).x + y.at(idx2).x - 2*y[j].x);
+            delta.y += beta*K*(y.at(idx1).y + y.at(idx2).y - 2*y[j].y);
 
             // apply cahnge
-            y[j].x += delta.x;
-            y[j].y += delta.y;
+            new_y[j].x += delta.x;
+            new_y[j].y += delta.y;
         }
+        y = new_y;
     }
 
     void Attach(std::vector<int>& path, double& path_dist, const std::vector<Point>& points){     // attach
@@ -190,7 +198,8 @@ namespace ElasticNet{
 
     void PlotFrame(const char* title, const int iter){
         fprintf(gp, "set title '%s (Frame: %d)'\n", title, iter);
-        fprintf(gp, "plot '-' with points title 'x', '-' with linespoints title 'y'\n");
+        // fprintf(gp, "plot '-' with points title 'x', '-' with linespoints title 'y'\n");
+        fprintf(gp, "plot '-' with points pointtype 2 pointsize 3 title 'x', '-' with linespoints pointtype 3 pointsize 2 title 'y'\n");
 
         for(const auto& k:x){
             fprintf(gp, "%lf %lf\n", k.x, k.y);
@@ -204,7 +213,7 @@ namespace ElasticNet{
 
         fflush(gp);
     }
-    
+
     void StopPlot(){
         fprintf(gp, "unset output\n");
         pclose(gp);
@@ -224,9 +233,20 @@ namespace ElasticNet{
                     // plot("TSP", r, i);
                     PlotFrame("TSP", i);
                 }
-                Update();
+                try{    
+                    Update();
+                }catch(std::runtime_error& e){
+                    if(strcmp(e.what(), "In Compute_weight: divide by zero")==0){
+                        break;
+                    }else{
+                        throw;
+                    }
+                }
                 if(i%K_iter==K_iter-1){     // to lower K
                     K *= K_prod;
+                    if(K<0.0001){
+                        break;
+                    }
                 }
                 ++eval_count;
             }
