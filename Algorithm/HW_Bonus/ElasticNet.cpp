@@ -15,12 +15,13 @@ namespace ElasticNet{
 
     std::vector<Point> x;
     std::vector<Point> y;
+    std::vector<std::vector<double> > w;    // for wij
 
 
     void Initialization(const std::vector<Point>& points){
         // ------------------------- Set parameters -------------------------
         // Total number of algorithm runs
-        run_times = 30;
+        run_times = 1;
         // Maximum iterations per run
         iteration = 10000;
         // Maximum evaluation times per run
@@ -71,6 +72,15 @@ namespace ElasticNet{
             p.y += delta_y;
             y.push_back(p);
         }
+
+        // -------------- w init to 0 --------------
+        for(int i=0;i<N;++i){
+            std::vector<double> temp;
+            for(int j=0;j<M;++j){
+                temp.push_back(0);
+            }
+            w.push_back(temp);
+        }
     }
 
     double ecuild_distance(const Point& A, const Point& B){
@@ -82,51 +92,45 @@ namespace ElasticNet{
         return exp((-d*d)/(2*K*K));
     }
 
-    double w(int i, int j){
-        double de = 0;
-        for(int k=0;k<M;++k){
-            de += phi(ecuild_distance(x[i], y[k]));
+    void Compute_weight(){
+        for(int i=0;i<N;++i){
+            double de = 0;
+            for(int k=0;k<M;++k){
+                de += phi(ecuild_distance(x[i], y[k]));
+            }
+            if(de==0){
+                throw std::runtime_error("In Compute_weight: divide by zero");
+            }
+            for(int j=0;j<M;++j){
+                double nu = phi(ecuild_distance(x[i], y[j]));
+                w.at(i).at(j) = nu/de;
+            }
         }
-        double nu = phi(ecuild_distance(x[i], y[j]));
-        if(de==0){
-            throw std::runtime_error("In w: divide by zero");
-        }
-
-        return nu/de;
     }
 
     void Update(){
+        Compute_weight();
         for(int j=0;j<M;++j){
             Point delta;
-            Point temp;
 
             // left part of formula
-            temp.x = temp.y = 0;
+            delta.x = delta.y = 0;
             for(int i=0;i<N;++i){
-                double temp_w = w(i, j);
-                temp.x += temp_w*(x[i].x-y[j].x);
-                temp.y += temp_w*(x[i].y-y[j].y);
+                delta.x += w.at(i).at(j) *(x[i].x-y[j].x);
+                delta.y += w.at(i).at(j) *(x[i].y-y[j].y);
             }
-            delta.x = alpha * temp.x;
-            delta.y = alpha * temp.y;
+            delta.x *= alpha;
+            delta.y *= alpha;
 
             // right part of formula
             int idx1 = j+1 % M;
             int idx2 = (j+M-1) % M;   // 哭阿 C 的 -1 % 2 == -1
-            temp.x = beta*K*(y[idx1].x+y[idx2].x-2*y[j].x);
-            temp.y = beta*K*(y[idx1].y+y[idx2].y-2*y[j].y);
-            delta.x += temp.x;
-            delta.y += temp.y;
+            delta.x += beta*K*(y[idx1].x+y[idx2].x-2*y[j].x);
+            delta.y += beta*K*(y[idx1].y+y[idx2].y-2*y[j].y);
 
             // apply cahnge
             y[j].x += delta.x;
             y[j].y += delta.y;
-
-            // avoid out of box;
-            y[j].x = std::max(y[j].x, 0.0);
-            y[j].x = std::min(y[j].x, 1.0);
-            y[j].y = std::max(y[j].y, 0.0);
-            y[j].y = std::min(y[j].y, 1.0);
         }
     }
 
@@ -218,7 +222,7 @@ namespace ElasticNet{
             Initialization(points);
             for(int i=0;i<iteration && eval_count<evaluation_max; ++i){
                 if(i%100==0){
-                    std::cout << "[Round: " << r << "/" << run_times << ", iter: " << i << "/" << iteration << "] " << ret.shortest_dist << std::endl;
+                    std::cout << "[Round: " << r << "/" << run_times << ", iter: " << i << "/" << iteration << "] " << ret.shortest_dist << " " << K << std::endl;
                     plot("TSP", r, i);
                 }
                 Update();
