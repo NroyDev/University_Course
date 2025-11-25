@@ -39,7 +39,7 @@ namespace ACO{
     void Initialization(const std::vector<Point>& points){
         // ------------------------- Set parameters -------------------------
         // Total number of algorithm runs
-        run_times = 30;
+        run_times = 1;
         // Maximum iterations per run
         iteration = 1000;
         // Number of ants (Population size)
@@ -47,18 +47,22 @@ namespace ACO{
         // Pheromone importance factor
         alpha = 1;
         // Heuristic Factor (1/distance)
-        beta = 3;
+        beta = 5;
         // Pheromone evaporation rate
         rho = 0.5;
         // Constant
-        Q = 100;
+        Q = 1;
         // Maximum evaluation times per run
         evaluation_max = 10000*points.size();
         eval_count = 0;
 
         // my constant
         size = points.size();
-        C = 0.1;
+        C = dist[size-1][0];
+        for(int i=1;i<size;++i){
+            C += dist[i-1][i];
+        }
+        C = Q/C;
 
         // ------------------------- initialize pheromone trails table -------------------------
         for(int i=0;i<size;++i){
@@ -95,14 +99,15 @@ namespace ACO{
         return P.at(idx).first;
     }
 
-    void ConstructAntSolution(std::vector<int>& ant_path, double& path_dist){
+    void ConstructAntSolution(std::vector<int>& ant_path, double& path_dist, int ant_id){
         path_dist = 0;
         std::set<int> non_visited;
         for(int i=0;i<size;++i){
             non_visited.insert(i);
         }
 
-        int current = rand()%size;  // random as start
+        // int current = rand()%size;  // random as start
+        int current = ant_id % size;
         ant_path.push_back(current);
         non_visited.erase(current);
         while(!non_visited.empty()){
@@ -197,7 +202,7 @@ namespace ACO{
                 std::vector<double> L;
                 for(int j=0;j<population_size && eval_count<evaluation_max; ++j){
                     double path_dist = 0;
-                    ConstructAntSolution(ant_paths[j], path_dist);
+                    ConstructAntSolution(ant_paths[j], path_dist, j);
                     L.push_back(path_dist);
                     if(path_dist<ret.shortest_dist){
                         ret.shortest_path = ant_paths[j];
