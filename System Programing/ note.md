@@ -191,6 +191,7 @@ int main(int argc, char *argv[]) {
 
 ---
 # Synchronization (Ch.11)
+- 因為我們可能在 thread 和 Process 之間，同時操作共享記憶體的物件，從而造成 race condifiton ，必須透過 synchronization 解決。
 - Process synchronization
     - Signals
     - Record locking (fnctl(2))
@@ -274,3 +275,14 @@ int main(int argc, char *argv[]) {
     ```c
     sem_getvalue(&bankLine, &availableTellers);
     ```
+
+- 在 Process 之間要共用 mutex lock 設定他的 Attribute
+    ```c
+    pthread_mutexattr_t mutex_attributes;
+    pthread_mutexattr_init(&mutex_attributes);
+    pthread_mutexattr_setpshared(&mutex_attributes, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&globalArea->sharedMutex, &mutex_attributes);
+    ```
+
+- Semaphore: multiple instance of some resource
+- Mutex    : single instance of a resource
