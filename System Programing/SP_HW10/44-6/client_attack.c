@@ -40,16 +40,7 @@ int main(int argc, char *argv[]){
         fatal("Can't write to server");
     }
 
-    /* Open our FIFO, read and display response */
     // clientFd = open(clientFifo, O_RDONLY);
-    // if(clientFd == -1){
-    //     errExit("open %s", clientFifo);
-    // }
-    // if(read(clientFd, &resp, sizeof(struct response)) != sizeof(struct response)){
-    //     fatal("Can't read response from server");
-    // }
-    
-    // printf("%d\n", resp.seqNum);
     printf("這邊故意不開 clientFd 讓 server 端被 block 助\n");
 
     exit(EXIT_SUCCESS);

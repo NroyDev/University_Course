@@ -31,6 +31,15 @@ int main(int argc, char *argv[]){
     req.pid = getpid();
     req.seqLen = (argc > 1) ? getInt(argv[1], GN_GT_0, "seq-len") : 1;
     
+
+    /* Open our FIFO, read and display response */
+    // 因為 Server ClientFd Nonblocking，為防止 Client 還沒來得及 Open FIFO，導致被蛋雕 沒 response，
+    // 在 write Server FIFO前，就掀開，保證Server在Open的時候不會蛋雕
+    clientFd = open(clientFifo, O_RDONLY | O_NONBLOCK);      
+    if(clientFd == -1){
+        errExit("open %s", clientFifo);
+    }
+
     serverFd = open(SERVER_FIFO, O_WRONLY);
     if(serverFd == -1){
         errExit("open %s", SERVER_FIFO);
@@ -39,11 +48,8 @@ int main(int argc, char *argv[]){
         fatal("Can't write to server");
     }
 
-    /* Open our FIFO, read and display response */
-    clientFd = open(clientFifo, O_RDONLY);
-    if(clientFd == -1){
-        errExit("open %s", clientFifo);
-    }
+    int flags = fcntl(clientFd, F_GETFL);
+    fcntl(clientFd, F_SETFL, flags & ~O_NONBLOCK);      // 將 clientFd 設回 Block，確保接下來的 read 會 block(等 Server 的 write)
     if(read(clientFd, &resp, sizeof(struct response)) != sizeof(struct response)){
         fatal("Can't read response from server");
     }
