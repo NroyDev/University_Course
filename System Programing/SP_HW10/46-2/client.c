@@ -59,7 +59,7 @@ int main(int argc, const char** argv){
         exit(errno);
     }
 
-    int msgLen = msgrcv(msqid, &msg, MAX_MTEXT, 0, 0);  // server always listening on 0
+    int msgLen = msgrcv(msqid, &msg, MAX_MTEXT, getpid(), 0);
     if(msgLen == -1){
         perror("msgrcv");
         exit(errno);

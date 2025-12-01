@@ -1,6 +1,7 @@
 *.o
 *.exe
 **/output
+**/tmp
 
 *.7z
 *.zip

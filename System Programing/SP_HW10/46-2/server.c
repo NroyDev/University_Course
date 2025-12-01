@@ -41,7 +41,7 @@ int main(){
     struct mbuf msg;
     printf("Server: start listening on %d\n", msqid);
     for(;;){
-        int msgLen = msgrcv(msqid, &msg, MAX_MTEXT, 1, 0);  // server always listening on 0
+        int msgLen = msgrcv(msqid, &msg, MAX_MTEXT, 1, 0);  // server always listening on 1
         if(msgLen == -1){
             perror("msgrcv");
             exit(errno);
