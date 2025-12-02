@@ -286,3 +286,108 @@ int main(int argc, char *argv[]) {
 
 - Semaphore: multiple instance of some resource
 - Mutex    : single instance of a resource
+
+
+- Multi-threading
+    - signal hanfling
+- UNIX signal
+    - "non-thread"
+    - `main  thread` => for signal handling    (sigwait())
+    - `other thread` => block all signals
+
+- priority inversion
+    - CPU 中 priority 高的人，也不能搶 priority 低的 process (thread) signal 的執行權
+    - `自己查？ 有的 OS 有，有的 OS 沒有`
+- priority inheritance
+    - `自己查？ 有的 OS 有，有的 OS 沒有`
+
+---
+
+# Socket (Ch.12)
+
+- Inter Process Communication (IPC)
+    - IPC 是同一機器，不同 Proccess 之間通訊的方法
+    - 要跨機器通訊，要依靠 `Socket`
+    
+    ```
+         ----     IPC     ----
+        | P1 | <-------> | P2 |
+         ----             ----
+    ```
+- UNIX 中的 IO 都用 File 的形式呈現
+    - make things simple
+- Socket
+    - Type 有兩種 => TCP / UDP
+    - TCP
+        - reliable: 用TCP，可以確保對方一定收的到，Programmer不須做任何而外工作，資料就一定可以送到對方那邊
+        ```
+        SOCK_STREAM — TCP
+            • Connection-oriented
+            • No message boundaries
+            • Reliable
+            • Sequenced
+            • Easier to use with reliability, but more expensive
+        ```
+    - UDP
+        - Not reliable: 用UDP，不確保對方一定都能收到，資料(封包)可能會在傳送過程中遺失
+        ```
+        SOCK_DGRAM — UDP
+            • Connectionless
+            • Message boundaries
+            • Not reliable, not sequenced
+            • Duplicates possible
+            • More efﬁcient
+        ```
+    - 只要給傳送的起始位置及大小，Socket，就會幫你送，不用自己切割成好幾個封包之類的
+    - Socket Domains and Types
+        - AF_UNIX, SOCK_STREAM
+        - AF_UNIX, SOCK_DGRAM
+        - AF_INET, SOCK_STREAM
+        - AF_INET, SOCK_DGRAM
+
+    - 比喻:
+        - Owner (Server):
+
+        | Human Speak | Computer Speak | System Call |
+        | ----------- | -------------- | ----------- |
+        | Buy a phone | Establish an end point | socket(3SOCKET) |
+        | Get a phone number| Establish a rendezvous |bind(3SOCKET) |
+        | Activate the phone line. | Set queue length and enable service | listen(3SOCKET) |
+        | Wait for a new client and redirect to Cesare’s phone. | Acknowledge | accept(3SOCKET) and fork(2) |
+        | Cesare takes order | Full duplex conversation | read(2), write(2), recv(3SOCKET), and send(3SOCKET) |
+        - Client
+
+        | Human Speak | Computer Speak | System Call |
+        | ----------- | -------------- | ----------- |
+        | Walk to any phone. | Establish an end point | socket() |
+        | Look for "Pizza" in phone book | Use directory services| gethostbyname(3NSL) |
+        | Dial the number | Request connection | connect(3SOCKET) |
+        | Place order | Full duplex conversation | read(), write(), recv(), and send() |
+        | Hang up | Send EOF | close(2) |
+
+    - Server 在 accept 後，會回傳一個代表該 Client 的 Interger，為了避免一個 Client 佔線，使 Server 在服務該 Client 的時候無法服務其他 Client，可以在 Accept 後，開一個 Thread (參數傳 accept() 得到的 Interger) 去處理。
+
+    - socket()— Creates a socket
+    - shutdown()— Destroys a socket
+    - IP+Port = Socket Address
+    - listen(sd, 5);
+        - 5 代表的是可以處理五個佔線，把他們 buffer 起來
+    - compile socket 的程式要加上 link，加上 -lsocket
+    - 一個 Process 可以有很多 Socket，那這個 Process 要如何管理 Socket?
+        - 可以用 Thread 管理，一個 thread 管理一個 Socket
+        - 可以用 Unix 的 Poll() Select()
+            ```c
+            int numfds = poll(fds, NUM_FDS_TO_POLL, -1);
+            ```
+            - Poll() 可以用來可以管理很多 Socket
+            - 但缺點是，他有連線進來的時候，必須要一條一條查 (poll() 知道有連線進來，但不知道是誰)
+                ```c
+                // 一個一個問
+                if(fds[0].revents == POLLIN){...}
+                if(fds[1].revents == POLLIN){...}
+                ```
+            - `SIGPOLL` ??????
+        - Linux 有個改進版的 poll(): `epoll()`
+            - 相對於 Unix 的 poll() 好處是： 連線進來的時候，可以立馬知道是哪個 Socket
+            - 壞處: 可攜行差，只能在 Linux 上用
+    - 單機用 UDP 是個不錯的選擇，因為沒有透過網路，不太會掉資料，UDP 也比較快、簡單
