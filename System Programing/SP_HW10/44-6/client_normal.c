@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
     /* Open our FIFO, read and display response */
     // 因為 Server ClientFd Nonblocking，為防止 Client 還沒來得及 Open FIFO，導致被蛋雕 沒 response，
     // 在 write Server FIFO前，就掀開，保證Server在Open的時候不會蛋雕
-    clientFd = open(clientFifo, O_RDONLY | O_NONBLOCK);      
+    clientFd = open(clientFifo, O_RDWR | O_NONBLOCK);       // RDWR WR是為了防止待會read的時候 因為server沒開 read就直接 return 0  
     if(clientFd == -1){
         errExit("open %s", clientFifo);
     }
