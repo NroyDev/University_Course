@@ -78,13 +78,10 @@ namespace ACO{
             CP.push_back(k.second+CP.back());
         }
 
-        if(CP.back() <= 0){
-            std::cout << P.size() << std::endl;
-            for(const auto& k:P){
-                std::cout << "("<<k.first<<","<<k.second<<")\t";
-            }
-            std::cout << std::endl;
-            throw std::runtime_error("In randSelect: No elements in P is larger than zero");
+        if(CP.back() <= 0){     // 發生律太小 隨機回傳，不然會觸發處以零的錯誤
+            printf("[WARNING] In randSelect(): 機律太小");
+            int rand_idx = rand() % P.size();
+            return P[rand_idx].first;
         }
 
         double r = rand();
@@ -111,21 +108,23 @@ namespace ACO{
         while(!non_visited.empty()){
             // 先計算出 機律 分母的部份
             double de = 0;
+            int next;
             for(const auto& l:non_visited){
                 de += pow(tau[i][l], alpha) * pow(1/dist[i][l], beta);
             }
             if(de==0){
-                throw std::runtime_error("In ConstructAntSolution: divide zero. (de)");
+                // throw std::runtime_error("In ConstructAntSolution: divide zero. (de)");
+                printf("[WARNING] In ConstructAntSolution(): 分母太小");
+                next = *non_visited.begin();
+            }else{
+                std::vector<std::pair<int, double> > P;     // 用來存每個可走的 city 接下來走過去的機率為何，格式 (可走City, 機率)
+                double nu = 1;                              // 每個 city 機率分子部份
+                for(const auto& j:non_visited){
+                    nu = pow(tau[i][j], alpha) * pow(1/dist[i][j], beta);
+                    P.push_back(std::make_pair(j, nu/de));
+                }
+                next = randSelect(P);                   // 透過輪盤法選到的 city
             }
-
-            std::vector<std::pair<int, double> > P;     // 用來存每個可走的 city 接下來走過去的機率為何，格式 (可走City, 機率)
-            double nu = 1;                              // 每個 city 機率分子部份
-            for(const auto& j:non_visited){
-                nu = pow(tau[i][j], alpha) * pow(1/dist[i][j], beta);
-                P.push_back(std::make_pair(j, nu/de));
-            }
-
-            int next = randSelect(P);                   // 透過輪盤法選到的 city
             ant_path.push_back(next);
             non_visited.erase(next);
             path_dist += dist[i][next];
