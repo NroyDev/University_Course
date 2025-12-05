@@ -140,9 +140,16 @@ namespace ACO{
         for(int i=0;i<size;++i){
             for(int j=0;j<size;++j){
                 tau[i][j] = (1-rho)*tau[i][j];
-                for(int m=0;m<population_size;++m){
-                    tau[i][j] += Q/L[m];
-                }
+            }
+        }
+
+        for(int i=0;i<population_size;++i){
+            std::vector<int>& path = ant_paths[i];
+            for(int j=1;j<(int)path.size();++j){
+                int from    = path.at(j-1);
+                int to      = path.at(j);
+                tau[from][to] += Q/L.at(i);
+                tau[to][from] += Q/L.at(i);
             }
         }
     }
