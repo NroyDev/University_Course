@@ -54,6 +54,7 @@ int main(int argc, const char** argv){
     ret.shortest_path.pop_back();
 
     // ----------- print ans -----------
+    out << "mean distance: " << ret.mean_dist << std::endl;
     out << "distance: " << ret.shortest_dist << std::endl;
     for(const auto& k:ret.shortest_path){
         out << points[k].city << std::endl;

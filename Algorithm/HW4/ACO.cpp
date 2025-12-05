@@ -32,14 +32,13 @@ namespace ACO{
     double alpha, beta, rho, Q;
     // other variable
     int size;
-    double C;
     double** tau = nullptr;
     double** dist = nullptr;
 
     void Initialization(const std::vector<Point>& points){
         // ------------------------- Set parameters -------------------------
         // Total number of algorithm runs
-        run_times = 1;
+        run_times = 30;
         // Maximum iterations per run
         iteration = 1000;
         // Number of ants (Population size)
@@ -58,7 +57,7 @@ namespace ACO{
 
         // my constant
         size = points.size();
-        C = dist[size-1][0];
+        double C = dist[size-1][0];
         for(int i=1;i<size;++i){
             C += dist[i-1][i];
         }
@@ -106,34 +105,34 @@ namespace ACO{
             non_visited.insert(i);
         }
 
-        // int current = rand()%size;  // random as start
-        int current = ant_id % size;
-        ant_path.push_back(current);
-        non_visited.erase(current);
+        int i = ant_id % size;          // 起點
+        ant_path.push_back(i);
+        non_visited.erase(i);
         while(!non_visited.empty()){
+            // 先計算出 機律 分母的部份
             double de = 0;
             for(const auto& l:non_visited){
-                de += pow(tau[current][l], alpha)*pow(1/dist[current][l], beta);
+                de += pow(tau[i][l], alpha) * pow(1/dist[i][l], beta);
             }
             if(de==0){
                 throw std::runtime_error("In ConstructAntSolution: divide zero. (de)");
             }
 
-            std::vector<std::pair<int, double> > P; 
-            double nu = 1;
+            std::vector<std::pair<int, double> > P;     // 用來存每個可走的 city 接下來走過去的機率為何，格式 (可走City, 機率)
+            double nu = 1;                              // 每個 city 機率分子部份
             for(const auto& j:non_visited){
-                nu = pow(tau[current][j], alpha)*pow(1/dist[current][j], beta);
+                nu = pow(tau[i][j], alpha) * pow(1/dist[i][j], beta);
                 P.push_back(std::make_pair(j, nu/de));
             }
 
-            int next = randSelect(P);
+            int next = randSelect(P);                   // 透過輪盤法選到的 city
             ant_path.push_back(next);
             non_visited.erase(next);
-            path_dist += dist[current][next];
+            path_dist += dist[i][next];
 
-            current = next;
+            i = next;
         }
-        path_dist += dist[current][ant_path[0]];
+        path_dist += dist[i][ant_path[0]];
         ant_path.push_back(ant_path[0]);
     }
 
@@ -188,32 +187,66 @@ namespace ACO{
     ACO_RET ACO(const std::vector<Point>& points){
         ACO_RET ret;
         ret.shortest_dist = 1.0/0.0;
+        ret.mean_dist = 0;
 
         srand(time(NULL));
         Allocate(points);
-        run_times = 30;
+        // =====================
+        // for 0 ≤ r < run_times
+        // =====================
+        run_times = 1;
         for(int r=0; r<run_times; ++r){
+            // ==============
+            // Initialization
+            // ==============
             Initialization(points);
+            double shortest_dist_thisrun = 1.0/0.0;             // 用來存這次 run 跑出的最短路徑
+            std::vector<int> shortest_path_thisrun;           // 用來存這次 run 跑出的最短路徑
+
+            // ======================
+            // for 0 ≤ i < iterations
+            // ======================
             for(int i=0;i<iteration && eval_count<evaluation_max; ++i){
                 if(i%100==0){
                     std::cout << "[Round: " << r << "/" << run_times << ", iter: " << i << "/" << iteration << "] " << ret.shortest_dist << std::endl;
                 }
-                std::vector<int> ant_paths[population_size];
-                std::vector<double> L;
+                std::vector<int> ant_paths[population_size];    // 用來存每隻螞蟻的路徑
+                std::vector<double> ant_dist;                   // 用來存每支螞蟻路徑長 
+                // ===========================
+                // for 0 ≤ j < population_size
+                // ===========================
                 for(int j=0;j<population_size && eval_count<evaluation_max; ++j){
                     double path_dist = 0;
+                    // ====================
+                    // ConstructAntSolution
+                    // ====================
                     ConstructAntSolution(ant_paths[j], path_dist, j);
-                    L.push_back(path_dist);
-                    if(path_dist<ret.shortest_dist){
-                        ret.shortest_path = ant_paths[j];
-                        ret.shortest_dist = path_dist;
-                    }
 
-                    // Evaluation() // eval_count ++
+                    // ==========
+                    // Evaluation
+                    // ==========
+                    ant_dist.push_back(path_dist);
+                    if(path_dist<shortest_dist_thisrun){
+                        shortest_path_thisrun = ant_paths[j];
+                        shortest_dist_thisrun = path_dist;
+                    }
                     ++eval_count;
                 }
-                Update_pheromones(ant_paths, L);
+                // =================
+                // Update_pheromones
+                // =================
+                Update_pheromones(ant_paths, ant_dist);
             }
+
+            // 在每個 round 結束後，這次Run跑出的path 看看是否更短，並更新mean dist的資料
+            // ==========
+            // Update RET
+            // ==========
+            if(shortest_dist_thisrun < ret.shortest_dist){
+                ret.shortest_dist = shortest_dist_thisrun;
+                ret.shortest_path = shortest_path_thisrun;
+            }
+            ret.mean_dist += shortest_dist_thisrun/(double)run_times;
         }
         DisAllocate();
 

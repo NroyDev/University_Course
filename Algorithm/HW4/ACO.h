@@ -12,6 +12,7 @@ struct Point{
 struct ACO_RET{
     std::vector<int> shortest_path;
     double shortest_dist;
+    double mean_dist;
 };
 
 namespace ACO{
