@@ -35,24 +35,34 @@ namespace ACO{
     double** tau = nullptr;
     double** dist = nullptr;
 
-    void Initialization(const std::vector<Point>& points){
+    void Initialization(const std::vector<Point>& points, const ACO_HYPERPARAM* hyper_param){
         // ------------------------- Set parameters -------------------------
-        // Total number of algorithm runs
-        run_times = 30;
+        if(hyper_param == nullptr){
+            // Total number of algorithm runs
+            run_times = 30;
+            // Number of ants (Population size)
+            population_size = points.size();
+            // Pheromone importance factor
+            alpha = 1;
+            // Heuristic Factor (1/distance)
+            beta = 5;
+            // Pheromone evaporation rate
+            rho = 0.5;
+            // Constant
+            Q = 1;
+            // Maximum evaluation times per run
+            evaluation_max = 10000*points.size();
+        }else{
+            run_times = hyper_param->run_times;
+            population_size = hyper_param->population_size;
+            alpha = hyper_param->alpha;
+            beta = hyper_param->beta;
+            rho = hyper_param->rho;
+            Q = hyper_param->Q;
+            evaluation_max = hyper_param->evaluation_max;
+        }
         // Maximum iterations per run
         iteration = 1000;
-        // Number of ants (Population size)
-        population_size = points.size();
-        // Pheromone importance factor
-        alpha = 1;
-        // Heuristic Factor (1/distance)
-        beta = 5;
-        // Pheromone evaporation rate
-        rho = 0.5;
-        // Constant
-        Q = 1;
-        // Maximum evaluation times per run
-        evaluation_max = 10000*points.size();
         eval_count = 0;
 
         // my constant
@@ -110,7 +120,7 @@ namespace ACO{
             double de = 0;
             int next;
             for(const auto& l:non_visited){
-                de += pow(tau[i][l], alpha) * pow(1/dist[i][l], beta);
+                de += pow(tau[i][l], alpha) * pow(1.0/dist[i][l], beta);
             }
             if(de==0){
                 // throw std::runtime_error("In ConstructAntSolution: divide zero. (de)");
@@ -120,7 +130,7 @@ namespace ACO{
                 std::vector<std::pair<int, double> > P;     // 用來存每個可走的 city 接下來走過去的機率為何，格式 (可走City, 機率)
                 double nu = 1;                              // 每個 city 機率分子部份
                 for(const auto& j:non_visited){
-                    nu = pow(tau[i][j], alpha) * pow(1/dist[i][j], beta);
+                    nu = pow(tau[i][j], alpha) * pow(1.0/dist[i][j], beta);
                     P.push_back(std::make_pair(j, nu/de));
                 }
                 next = randSelect(P);                   // 透過輪盤法選到的 city
@@ -154,7 +164,7 @@ namespace ACO{
     }
 
     void Allocate(const std::vector<Point>& points){
-        int size = points.size();
+        size = points.size();
 
         // allocate space
         dist = new double*[size];
@@ -190,7 +200,7 @@ namespace ACO{
         dist    = nullptr;
     }
 
-    ACO_RET ACO(const std::vector<Point>& points){
+    ACO_RET ACO(const std::vector<Point>& points, ACO_HYPERPARAM* hyper_param){
         ACO_RET ret;
         ret.shortest_dist = 1.0/0.0;
         ret.mean_dist = 0;
@@ -205,7 +215,7 @@ namespace ACO{
             // ==============
             // Initialization
             // ==============
-            Initialization(points);
+            Initialization(points, hyper_param);
             double shortest_dist_thisrun = 1.0/0.0;             // 用來存這次 run 跑出的最短路徑
             std::vector<int> shortest_path_thisrun;           // 用來存這次 run 跑出的最短路徑
 

@@ -181,14 +181,14 @@ namespace ElasticNet{
     }
 
     FILE *gp = NULL;
-    void StartPlot(const char* title, const int run){
+    void StartPlot(const char* title, const int run, const char* gif_path){
         gp = NULL;
         if((gp = popen("gnuplot -p", "w")) == NULL){
             perror("[plot] Error: popen");
             exit(errno);
         }
         char fig_path[256];
-        sprintf(fig_path, "./output/%s_%02d.gif", title, run);
+        sprintf(fig_path, "%s_%s_%02d.gif", gif_path, title, run);
         fprintf(gp, "set terminal gif animate delay 10 loop 0 size 600, 600\n");
         fprintf(gp, "set output '%s'\n", fig_path);
         fprintf(gp, "set xrange [0:1]\n");
@@ -219,13 +219,14 @@ namespace ElasticNet{
         pclose(gp);
     }
 
-    ElasticNet_RET ElasticNet(const std::vector<Point>& points){
+    ElasticNet_RET ElasticNet(const std::vector<Point>& points, const char* gif_path){
         ElasticNet_RET ret;
         ret.shortest_dist = 1.0/0.0;
+        ret.mean_dist = 0;
 
         run_times = 30;
         for(int r=0; r<run_times; ++r){
-            StartPlot("TSP", r);
+            StartPlot("TSP", r, gif_path);
             Initialization(points);
             for(int i=0;i<iteration && eval_count<evaluation_max; ++i){
                 if(i%100==0){
@@ -257,6 +258,7 @@ namespace ElasticNet{
                 ret.shortest_dist = path_dist;
                 ret.shortest_path = path;
             }
+            ret.mean_dist += path_dist/(double)run_times;
             StopPlot();
         }
 

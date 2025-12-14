@@ -139,36 +139,10 @@ void argvParser(int argc,const char** argv){
         exit(1);
     }else if(argc == 2){
         data_path = argv[1];
-
-
     }else if(argc == 4){
-        data_path = argv[3];
-        if(strcmp(argv[1], "-oi") == 0){
-            fig_path = argv[2];
-        }else if(strcmp(argv[1], "-ot") == 0){
-            ans_path = argv[2];
-        }
-
-
-    }else if(argc == 6){
-        data_path = argv[5];
-        if(strcmp(argv[1], "-oi") == 0){
-            fig_path = argv[2];
-        }else if(strcmp(argv[1], "-ot") == 0){
-            ans_path = argv[2];
-        }else{
-            usage(argv);
-            exit(1);
-        }
-
-        if(strcmp(argv[3], "-oi") == 0 && strcmp(argv[1], "-oi") != 0){
-            fig_path = argv[4];
-        }else if(strcmp(argv[3], "-ot") == 0 && strcmp(argv[1], "-ot") != 0){
-            ans_path = argv[4];
-        }else{
-            usage(argv);
-            exit(1);
-        }
+        data_path = argv[1];
+        ans_path = argv[2];
+        fig_path = argv[3];
     }else{
         usage(argv);
         exit(1);
@@ -225,11 +199,8 @@ void plot(const char* title, const std::vector<Point>& points, const std::vector
 }
 
 void usage(const char** argv){
-    std::cout << "用法: " << argv[0] << " [input data path]" << std::endl;
-    std::cout << "用法: " << argv[0] << " -oi [output image path] [input data path]" << std::endl;
-    std::cout << "用法: " << argv[0] << " -ot [output txt path] [input data file]" << std::endl;
-    std::cout << "用法: " << argv[0] << " -oi [output image path] -ot [output txt path] [input data file]" << std::endl;
-    std::cout << "用法: " << argv[0] << " -ot [output txt path] -oi [output image path] [input data file]" << std::endl;
+    std::cout << "Usage: " << argv[0] << " <dataset>" << std::endl;
+    std::cout << "Usage: " << argv[0] << " <dataset> <output_txt_name> <output_png_name>" << std::endl;
     return;
 }
 
