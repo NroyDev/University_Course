@@ -11,32 +11,35 @@
 void task(int ns){
     // Read from client
     char buf[BUF_SIZE] = {};
-    int len = read(ns, buf, BUF_SIZE - 1);
-    if(len <= 0){
-        perror("read");
-        close(ns);
-        return;
-    }
-    buf[len] = '\0';
-    fprintf(stdout, "PID %u received: %s\n", getpid(), buf);
-    fflush(stdout);
-    
-    // compute
-    int a, b;
-    if(sscanf(buf, "%*c%d%*c%d%*c", &a, &b) != 2) {
-        fprintf(stderr, "Invalid input format: %s\n", buf);
-        close(ns);
-        return;
-    }
-    sprintf(buf, "%d", a*b);
-    fprintf(stdout, "PID %u result: %s\n", getpid(), buf);
-    fflush(stdout);
-    
+    int len = 0;
+    while((len = read(ns, buf, BUF_SIZE - 1)) > 0){
+        buf[len] = '\0';
+        fprintf(stdout, "PID %u received (%ld): %s\n", getpid(), strlen(buf), buf);
+        fflush(stdout);
+        if(strcmp(buf,"exit") == 0){
+            break;
+        }
+        
+        // compute
+        int a, b;
+        if(sscanf(buf, "%*c%d%*c%d%*c", &a, &b) != 2) {
+            fprintf(stderr, "PID %u has Invalid input format: %s\n", getpid(), buf);
+            strcpy(buf, "bad format");
+        }else{
+            sprintf(buf, "%d", a*b);
+        }
+        fprintf(stdout, "PID %u result: %s\n", getpid(), buf);
+        fflush(stdout);
+        
 
-    // Send Result to client
-    if(write(ns, buf, strlen(buf)) == -1){
-        perror("write to socket");
+        // Send Result to client
+        if(write(ns, buf, strlen(buf)) == -1){
+            perror("write to socket");
+        }
     }
+    
+    fprintf(stdout, "PID %u disconnected\n", getpid());
+    fflush(stdout);
     close(ns);
 }
 
@@ -82,6 +85,8 @@ int main(){
             close(ns);
             break;
         case 0:
+            fprintf(stdout, "new connection arrived. Connection runs on process %u\n", getpid());
+            fflush(stdout);
             task(ns);
             _exit(0);
             break;

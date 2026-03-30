@@ -36,27 +36,34 @@ int main(){
         exit(1);
     }
 
-    // input and send to server
+    
     char buf[BUF_SIZE];
-    fgets(buf, BUF_SIZE, stdin);
-    if(buf[strlen(buf)-1]=='\n'){
-        buf[strlen(buf)-1]='\0';
+    while(fgets(buf, BUF_SIZE, stdin) != NULL){
+        if(buf[strlen(buf)-1]=='\n'){
+            buf[strlen(buf)-1]='\0';
+        }
+        if(strcmp(buf, "exit") == 0){
+            break;
+        }
+        
+        // send to server
+        if(write(sd, buf, strlen(buf)) == -1){
+            perror("write");
+            close(sd);
+            exit(1);
+        }
+        // read result from server
+        int len = read(sd, buf, BUF_SIZE-1);
+        if(len <= 0){
+            perror("read");
+            len = 0;
+            exit(1);
+        }
+        buf[len] = '\0';
+        fprintf(stdout, "%s\n", buf);
+        fflush(stdout);
     }
-    if(write(sd, buf, strlen(buf)) == -1){
-        perror("write");
-        exit(1);
-    }
-
-    // read result from server
-    int len = read(sd, buf, BUF_SIZE-1);
-    if(len <= 0){
-        perror("read");
-        exit(1);
-    }
-    buf[len] = '\0';
     close(sd);
-    fprintf(stdout, "%s\n", buf);
-    fflush(stdout);
 
     return 0;
-}
+}  
