@@ -1,4 +1,4 @@
-FILE_lex=	lex.l
+FILE_lex=	$(wildcard *.l)
 PROG_lex=	lex.yy.c
 all:	$(PROG_lex)
 	gcc $(PROG_lex) -lfl -o scanner

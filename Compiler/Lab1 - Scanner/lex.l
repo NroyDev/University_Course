@@ -10,19 +10,19 @@ space [ ]
 nl \n|\r\n
 
 /* Reserverd word */
-%option caseless
+%option case-insensitive
 Reserved (absolute|and|begin|break|case|const|continue|do|else|end|for|function|if|mod|nil|not|object|of|or|program|then|to|var|while|array|integer|double|write|writeln|string|float|read|array|integer|double|write|writeln|string|float)
 
 /* ID */
 Identifiers [_a-zA-Z][_0-9a-zA-Z]{0,14}
 Int -?([0-9]+)
-InvaildID [#^0-9][_0-9a-zA-Z]+|[#^]|[_a-zA-Z][_0-9a-zA-Z]{15,}
+InvaildID [#^0-9][_0-9a-zA-Z]+|[_a-zA-Z][_0-9a-zA-Z]{15,}
 
 Symbols [;:()><=[\]+\-*/.,]|:=|==|<=|>= 
 
-String '.{0,30}'
+String '([^'\r\n]|''){0,30}'
 /* invalidString '.*' */
-invalidString '.*'|'[^'\n]*{Symbols}
+invalidString '[^'\r\n]*'|'[^'\n;:()><=[\]+\-*/.,]*
 
 /* For Real numbers */
 InvalidFloat -?(\.[0-9]+|[0-9]+\.|0[0-9]+\.[0-9]+|[0-9]+\.[0-9]+0)
@@ -55,9 +55,10 @@ Real {Int}|{Float}|{Exp}
         printf("%s", yytext);
         char_cnt += yyleng; 
 }
-<COMMENT>\n    { 
+<COMMENT>\n|\r\n    { 
 	printf("” is a “comment”.\n");
-	++line_cnt;char_cnt=1; 
+	++line_cnt;char_cnt=1;
+	printf("Line: %d, 1st char: %d, “", line_cnt, char_cnt);
 }
 <COMMENT><<EOF>> {
 	printf("” is an invalid “comment”, the quote reaches the end of file.\n");
