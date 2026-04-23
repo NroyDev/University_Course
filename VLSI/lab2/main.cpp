@@ -1,22 +1,24 @@
-#include<cstdlib>
-#include<iostream>
-#include<fstream>
-#include<queue>
-#include<vector>
-#include<climits>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <queue>
+#include <vector>
+#include <climits>
+#include <map>
+#include <algorithm>
 using namespace std;
 
-struct cdfg{
-	int op;
+struct cdfg {
+	int op;		// 1: ADD, 2: MUL
 	int src1;
 	int src2;
 	int dst;
 };
 
-struct readylist{
-	int state;	// 0: not ready, 1: ready, 2: complete
-	int p;		// the priority that breaks the tie (longest path)
-	int op;		// do what type operation to make it complete
+struct readylist {
+	int state;	// 0=Not Ready, 1=Ready, 2=Done, 3=Doing
+	int p;		// Priority
+	int op;		// Operation type
 };
 
 void usage(const char** argv){
@@ -24,304 +26,329 @@ void usage(const char** argv){
 	exit(1);
 }
 
-void update_readylist(struct readylist* ready_list, const struct cdfg* cdfg, const int rsize, const int csize){
-	// phase1: mark all unready as ready
-	for(int i=0;i<rsize;++i){
+void update_readylist(vector<readylist>& ready_list, const vector<cdfg>& cdfg_list){
+    int rsize = ready_list.size();
+    int csize = cdfg_list.size();
+
+	for(int i=0; i<rsize; ++i){
 		if(ready_list[i].state==0){
-			ready_list[i].state = 1;	// mark as ready at first
+			ready_list[i].state = 1;	
 		}
 	}
 
-	// phase2: unmark the unready ones
-	for(int i=0;i<csize;++i){
-		int src1 = cdfg[i].src1;
-		int src2 = cdfg[i].src2;
-		int dst = cdfg[i].dst;
+	// Revert to unready if source dependencies are not met
+	for(int i=0; i<csize; ++i){
+		int src1 = cdfg_list[i].src1;
+		int src2 = cdfg_list[i].src2;
+		int dst  = cdfg_list[i].dst;
+		
 		if(!(src1<rsize && src2<rsize && dst<rsize)){
 			cout << "ERROR: out of index in update_readylist(). ABORTED" << endl;
 			exit(3);
 		}
-		if(ready_list[dst].state==2){		// if the operation has been complete => ignore it
+		
+		// Skip done
+		if(ready_list[dst].state==2){		
 			continue;
 		}
 
-		if(ready_list[src1].state!=2){		// if its source hasn't been completed => it should be unready
+		// If source node is not done, the destination is not ready
+		if(ready_list[src1].state!=2){		
 			ready_list[dst].state = 0;
 		}
 		if(ready_list[src2].state!=2){
-			ready_list[dst].state = 0;	// similar to the previous reason
+			ready_list[dst].state = 0;	
 		}
 	}
 }
 
-void longest_path(struct readylist* ready_list, const struct cdfg* cdfg, const int rsize, const int csize){
-	// use topo sort
-	// by topo order, compute dist[v] = max(dist[v], dist[u]+w[u][v]);
-	
-	// topo sort
-	int* in_degree = new int[rsize];
-	for(int i=0;i<rsize;++i){
-		in_degree[i] = 0;
-	}
-	for(int i=0;i<csize;++i){
-		int src1 = cdfg[i].src1;
-		int src2 = cdfg[i].src2;
-		//int dst  = cdfg[i].dst;
-		if(!(src1<rsize && src2<rsize)){
-			cout << "ERROR: out of index in longest_path(). ABORTED" << endl;
-			exit(6);
-		}
-		++in_degree[src1];
-		++in_degree[src2];
-	}
+void longest_path(vector<readylist>& ready_list, const vector<cdfg>& cdfg_list, const int c_add, const int c_mul){
+    int rsize = ready_list.size();
+    int csize = cdfg_list.size();
 
-	queue<int> q;	// store current indegree = 0;
-	vector<int> v;	// store the topo order (val: node ID AKA idx of ready_list)
-	for(int i=0;i<rsize;++i){
-		if(in_degree[i]==0){
-			q.push(i);
-			ready_list[i].p = 0;
-		}else{
-			ready_list[i].p = INT_MIN;
-		}
-	}
-	while(!q.empty()){
-		int current = q.front();
-		q.pop();
-		v.push_back(current);
+    vector<int> out_degree(rsize, 0); 
+    
+    // Calculate out-degrees
+    for(int i=0; i<csize; ++i){
+        int src1 = cdfg_list[i].src1;
+        int src2 = cdfg_list[i].src2;
+        int dst  = cdfg_list[i].dst;
+        
+        if(!(src1<rsize && src2<rsize && dst<rsize)){
+            cout << "ERROR: out of index in longest_path(). ABORTED" << endl;
+            exit(6);
+        }
+        out_degree[src1]++;
+        out_degree[src2]++;
+    }
 
-		for(int i=0;i<csize;++i){
-			int src1 = cdfg[i].src1;
-			int src2 = cdfg[i].src2;
-			int dst  = cdfg[i].dst;
-			if(!(src1<rsize && src2<rsize && dst<rsize)){
-				cout << "ERROR: out of index in longest_path(). ABORTED" << endl;
-				exit(7);
-			}
-			if(dst==current){
-				--in_degree[src1];
-				--in_degree[src2];
-				if(in_degree[src1]==0){
-					q.push(src1);
-				}else if(in_degree[src1]<0){
-					cout << "ERROR: WTH indegree smaller than 0. in longest_path(). ABORTED" << endl;
-					exit(8);
-				}
-				if(in_degree[src2]==0){
-					q.push(src2);
-				}else if(in_degree[src2]<0){
-					cout << "ERROR: WTH indegree smaller than 0. in longest_path(). ABORTED" << endl;
-					exit(8);
-				}
+    queue<int> q;	
+    vector<int> v;	
+    
+    for(int i=0; i<rsize; ++i){
+        if(out_degree[i]==0){
+            q.push(i);
+            ready_list[i].p = (ready_list[i].op == 1) ? c_add : c_mul;
+        }else{
+            ready_list[i].p = 0;
+        }
+    }
+    
+    // Reverse topological sort
+    while(!q.empty()){
+        int current = q.front();
+        q.pop();
+        v.push_back(current);
 
-			}
-		}
-	}
-	if(v.size() < rsize){	// check
-		cout << "ERROR: input file may contain a Cycle. IT SHOULD BE A DAG. in longest_path() ABORTED" << endl;
-		exit(9);
-	}else if(v.size() > rsize){
-		cout << "ERROR: WTH. v.size() > rsize ????. in longest_path. ABORTED" << endl;
-		exit(10);
-	}
+        for(int i=0; i<csize; ++i){
+            if(cdfg_list[i].dst == current){
+                int src1 = cdfg_list[i].src1;
+                int src2 = cdfg_list[i].src2;
+                
+                if(!(src1<rsize && src2<rsize && cdfg_list[i].dst<rsize)){
+                    cout << "ERROR: out of index in longest_path(). ABORTED" << endl;
+                    exit(7);
+                }
+                
+                int delay1 = (ready_list[src1].op == 1) ? c_add : c_mul;
+                int delay2 = (ready_list[src2].op == 1) ? c_add : c_mul;
 
-	// compute longest dist
-	for(int i=0;i<rsize;++i){
-		int current = v[i];
-		for(int j=0;j<csize;++j){
-			int src1 = cdfg[j].src1;
-			int src2 = cdfg[j].src2;
-			int dst  = cdfg[j].dst;
-			if(!(src1<rsize && src2<rsize && dst<rsize)){
-				cout << "ERROR: out of index in longest_path(). ABORTED" << endl;
-				exit(11);
-			}
-			if(current == dst){
-				ready_list[src1].p = max(ready_list[src1].p, ready_list[current].p+1);
-				ready_list[src2].p = max(ready_list[src2].p, ready_list[current].p+1);
-			}
-		}
-	}
+                ready_list[src1].p = max(ready_list[src1].p, ready_list[current].p + delay1);
+                ready_list[src2].p = max(ready_list[src2].p, ready_list[current].p + delay2);
 
-	delete [] in_degree;
+                out_degree[src1]--;
+                if(out_degree[src1] == 0){
+                    q.push(src1);
+                } else if(out_degree[src1] < 0){
+                    cout << "ERROR: WTH outdegree smaller than 0. in longest_path(). ABORTED" << endl;
+                    exit(8);
+                }
+                
+                out_degree[src2]--;
+                if(out_degree[src2] == 0){ 
+                    q.push(src2);
+                } else if(out_degree[src2] < 0){
+                    cout << "ERROR: WTH outdegree smaller than 0. in longest_path(). ABORTED" << endl;
+                    exit(8);
+                }
+            }
+        }
+    }
+    if(v.size() < rsize){	
+        cout << "ERROR: input file may contain a Cycle. IT SHOULD BE A DAG. in longest_path() ABORTED" << endl;
+        exit(9);
+    }else if(v.size() > rsize){
+        cout << "ERROR: WTH. v.size() > rsize ????. in longest_path. ABORTED" << endl;
+        exit(10);
+    }
 }
 
-void init_readylist(struct readylist* ready_list, const struct cdfg* cdfg, const int rsize, const int csize){	
-	// init
-	for(int i=0;i<rsize;++i){
-		// undefined state, used for check the input is vaild (ensure there's no unreferenced node)
-		ready_list[i].state = -1;	// remember we used max to take n_readylist right?
+void init_readylist(vector<readylist>& ready_list, const vector<cdfg>& cdfg_list, const int c_add, const int c_mul){	
+    int rsize = ready_list.size();
+    int csize = cdfg_list.size();
+
+	for(int i=0; i<rsize; ++i){
+		ready_list[i].state = 0;	
 		ready_list[i].op = 0;
 	}
-	// check there's no unreferenced node & fill in op type
-	for(int i=0;i<csize;++i){
-		int src1 = cdfg[i].src1;
-		int src2 = cdfg[i].src2;
-		int dst = cdfg[i].dst;
-		if(!(src1<rsize && src2<rsize && dst<rsize)){
+	
+	// Fill in operation types
+	for(int i=0; i<csize; ++i){
+		int dst = cdfg_list[i].dst;
+		if(!(dst<rsize)){
 			cout << "ERROR: out of index in init_readlist(). ABORTED" << endl;
-			//cout << src1 << " " << src2 << " " << dst << " " << rsize << " " << csize << endl;
 			exit(4);
 		}
-		// mark referenced to defined state, undefined state stands for unreferenced node
-		ready_list[src1].state = 0;
-		ready_list[src2].state = 0;
-		ready_list[dst].state = 0;
-		// fill in op type
-		ready_list[dst].op = cdfg[i].op;
+		ready_list[dst].op = cdfg_list[i].op;
 		if(!(ready_list[dst].op == 1 || ready_list[dst].op==2)){
-			cout << "ERR:" << endl;
+			cout << "ERROR: Undefined Operation " << ready_list[dst].op << " in init_readylist(). ABORTED" << endl;
 			exit(13);
 		}
 	}
-	for(int i=0;i<rsize;++i){
-		if(ready_list[i].state != 0){	// if the node state not equl to zero, it means there's no referenced
-			cout << "ERROR: input file has unreferenced node. in init_readlist(). ABORTED" << endl;
-			exit(5);
-		}
-	}
-	// ensure which completed
-	for(int i=0;i<rsize;++i){
+	
+	// make pure input nodes Done
+	for(int i=0; i<rsize; ++i){
 		ready_list[i].state = 2;
 	}
-	for(int i=0;i<csize;++i){
-		int dst = cdfg[i].dst;
+	for(int i=0; i<csize; ++i){
+		int dst = cdfg_list[i].dst;
 		ready_list[dst].state = 0;
 	}
 	
-	// compute longest path for each node => priority
-	longest_path(ready_list, cdfg, rsize, csize);
-	update_readylist(ready_list, cdfg, rsize, csize);	
+	longest_path(ready_list, cdfg_list, c_add, c_mul); // Calculate priorities
+	update_readylist(ready_list, cdfg_list);	       // Unlock initial ready nodes
 }
 
 int main(const int argc, const char** argv){
 	if(argc!=2){
 		usage(argv);
 	}
+	
+	// ----------------- input -----------------
+	int n_add = 0; // Number of adders
+	int n_mul = 0; // Number of multipliers
+	int c_add = 0; // Cycles needed for one ADD
+	int c_mul = 0; // Cycles needed for one MUL
+	cout << "enter #add: ";
+	cin >> n_add;
+	cout << "enter #cycle add need: ";
+	cin >> c_add;
+	cout << "enter #mul: ";
+	cin >> n_mul;
+	cout << "enter #cycle mul need: ";
+	cin >> c_mul;
+
 	ifstream in(argv[1]);
 	if(!in.is_open()){
 		cout << "Open " << argv[1] << " failed" << endl;
 		exit(2);
 	}
 	
-	// ------------ Construct CDFG ------------
 	cout << "Construct CDFG starts..." << endl;
 	int n_cdfg = 0;
-	int op;			// operation type
-	int src1, src2, dst;	// nodes
-	while(in >> op >> src1 >> src2 >> dst){	// phase1: read how many operations
-		++n_cdfg;
+	int op;			
+	int src1, src2, dst;	
+	in >> n_cdfg; // Total operations
+    
+	vector<cdfg> cdfg_list(n_cdfg);	
+    
+	// ----------------- Remapping -----------------
+	// map raw IDs to continuous IDs
+	map<int, int> mp;  // Raw ID -> Seq ID
+	map<int, int> rmp; // Seq ID -> Raw ID
+	for(int i=0; in >> op >> src1 >> src2 >> dst; ++i){	
+		if(mp.count(src1)!=0){
+			src1 = mp[src1];
+		}else{
+            int current_id = mp.size();
+			rmp.insert(make_pair(current_id, src1));
+			mp.insert(make_pair(src1, current_id));
+			src1 = current_id;
+		}
+		if(mp.count(src2)!=0){
+			src2 = mp[src2];
+		}else{
+            int current_id = mp.size();
+			rmp.insert(make_pair(current_id, src2));
+			mp.insert(make_pair(src2, current_id));
+			src2 = current_id;
+		}
+		if(mp.count(dst)!=0){
+			dst = mp[dst];
+		}else{
+            int current_id = mp.size();
+			rmp.insert(make_pair(current_id, dst));
+			mp.insert(make_pair(dst, current_id));
+			dst = current_id;
+		}
+		cdfg_list[i].op = op;
+		cdfg_list[i].src1 = src1;
+		cdfg_list[i].src2 = src2;
+		cdfg_list[i].dst = dst;
 	}
-	in.close();
-	
-	
-	struct cdfg* cdfg = new struct cdfg[n_cdfg];	// the operations list
-	int n_readylist = 0;
-	in.open(argv[1]);
-	if(!in.is_open()){
-		cout << "Open " << argv[1] << " failed" << endl;
-		exit(3);
-	}
-	for(int i=0;in >> op >> src1 >> src2 >> dst; ++i){	// phase2: store the operations to list
-		cdfg[i].op = op;
-		cdfg[i].src1 = src1-1;
-		cdfg[i].src2 = src2-1;
-		cdfg[i].dst = dst-1;
-
-		n_readylist = max(n_readylist, src1);
-		n_readylist = max(n_readylist, src2);
-		n_readylist = max(n_readylist, dst);
-	}
+	int n_readylist = mp.size(); // Total nodes
 	in.close();
 	cout << "Construct CDFG Done." << endl;
 	
-	// ------------ Construct Ready List ------------
+	// ----------------- ReadyList -----------------
 	cout << "Construct Ready List..." << endl;
-	struct readylist* ready_list = new struct readylist[n_readylist];
-	init_readylist(ready_list, cdfg, n_readylist, n_cdfg);
+	vector<readylist> ready_list(n_readylist);
+	init_readylist(ready_list, cdfg_list, c_add, c_mul);
 	cout << "Construct Ready List Done." << endl;
 	
-	// ------------ List Scheduling ------------
 	cout << "List Scheduling Starts: " << endl;
-	int n_add = 0;
-	int n_mul = 0;
-	cout << "enter #add: ";
-	cin >> n_add;
-	cout << "enter #mul: ";
-	cin >> n_mul;
 
+	// ----------------- Scheduling -----------------
 	bool is_done = false;
 	int cstep = 0;
+	vector<pair<int,int>> add_doing; 
+	vector<pair<int,int>> mul_doing;
 	while(!is_done){
 		++cstep;
 		cout << "------------" << endl;
 		cout << "time " << cstep << endl;
 
-		vector<int> add_jobs;
-		vector<int> mul_jobs;
-		cout << "Ready List: {";
-		for(int i=0;i<n_readylist;++i){		// take ready jobs
-			if(ready_list[i].state != 1){	// skip unready or completed
+		vector<pair<int,int>> add_jobs = add_doing;
+		vector<pair<int,int>> mul_jobs = mul_doing;
+		cout << "Ready/Doing List: ";
+		vector<int> add_ready, mul_ready;
+		// Find all Ready tasks
+		for(int i=0; i<n_readylist; ++i){		
+			if(ready_list[i].state != 1){
+				continue;
+			}else if(ready_list[i].state == 3){
+				cout << "D" << rmp[i] << " ";
 				continue;
 			}
-			cout << "(" << i+1 << "," << ready_list[i].p << "," << ready_list[i].op << "), ";
-
-			if(ready_list[i].op == 1){	// 1 for add
-				if(add_jobs.size() < n_add){		// not full => add it
-					add_jobs.push_back(i);
-				}else{					// full => replace the lowest priority
-					int min_idx = 0;
-					for(int j=1;j<n_add;++j){
-						if(ready_list[add_jobs[min_idx]].p > ready_list[add_jobs[j]].p){
-							min_idx = j;
-						}
-					}
-					if(ready_list[add_jobs[min_idx]].p < ready_list[i].p){
-						add_jobs[min_idx] = i;
-					}
-				}
-
-			}else if(ready_list[i].op == 2){// 2 for mul
-				if(mul_jobs.size() < n_mul){
-					mul_jobs.push_back(i);
-				}else{
-					int min_idx = 0;
-					for(int j=1;j<n_mul;++j){
-						if(ready_list[mul_jobs[min_idx]].p > ready_list[add_jobs[j]].p){
-							min_idx = j;
-						}
-					}
-					if(ready_list[mul_jobs[min_idx]].p < ready_list[i].p){
-						add_jobs[min_idx] = i;
-					}
-				}
-
+			cout << "R" << rmp[i] << " ";
+			if(ready_list[i].op == 1){	
+				add_ready.push_back(i);
+			}else if(ready_list[i].op == 2){
+				mul_ready.push_back(i);
 			}else{
 				cout << "ERROR: undefined op type. in main(). ABORTED" << endl;
 				cout << i << " " << ready_list[i].op << endl;
 				exit(12);
 			}
 		}
-		cout << "}" << endl;
-		cout << "Chosen ADD op: ";
-		for(const auto k:add_jobs){
-			cout << "(" << k+1 << "," << ready_list[k].p << "), ";
+		cout << endl;
+
+		// Sort ready tasks by priority
+		auto cmp = [&](int s, int t) { 
+			return ready_list[s].p > ready_list[t].p; 
+		};
+		sort(add_ready.begin(), add_ready.end(), cmp);
+		sort(mul_ready.begin(), mul_ready.end(), cmp);
+		// Allocate tasks to available ALU
+		int add_remain = n_add - add_doing.size();
+		for(int i = 0; i < min((int)add_ready.size(), add_remain); ++i){
+			add_jobs.push_back(make_pair(add_ready[i], c_add));
+		}
+		int mul_remain = n_mul - mul_doing.size();
+		for(int i = 0; i < min((int)mul_ready.size(), mul_remain); ++i){
+			mul_jobs.push_back(make_pair(mul_ready[i], c_mul));
+		}
+		add_doing.clear();
+		mul_doing.clear();
+
+		// Output
+		cout << "ADD Executing: ";
+		for(const auto t:add_jobs){
+			int k = t.first;
+			cout << "(v" << rmp[k] << "," << t.second << ") ";
+			if(t.second-1>0){ 
+				add_doing.push_back(make_pair(t.first, t.second-1));
+			}
 		}
 		cout << endl;
-		cout << "Chosen MUL op: ";
-		for(const auto k:mul_jobs){
-			cout << "(" << k+1 << "," << ready_list[k].p << "), ";
+		cout << "MUL Executing: ";
+		for(const auto t:mul_jobs){
+			int k = t.first;
+			cout << "(v" << rmp[k] <<  "," << t.second << ") ";
+			if(t.second-1>0){
+				mul_doing.push_back(make_pair(t.first, t.second-1));
+			}
 		}
 		cout << endl;
 
-		// update
-		for(const auto k:add_jobs){
-			ready_list[k].state = 2;
+		// Update states
+		for(const auto t:add_jobs){
+			int k = t.first;
+			ready_list[k].state = 3;
+			if(t.second-1==0){
+				ready_list[k].state = 2; // Finished
+			}
 		}
-		for(const auto k:mul_jobs){
-			ready_list[k].state = 2;
+		for(const auto t:mul_jobs){
+			int k = t.first;
+			ready_list[k].state = 3;
+			if(t.second-1==0){
+				ready_list[k].state = 2; // Finished
+			}
 		}
-		update_readylist(ready_list, cdfg, n_readylist, n_cdfg);
+		update_readylist(ready_list, cdfg_list);
+		
+		// Termination condition
 		is_done = true;
 		for(int i=0;i<n_readylist;++i){
 			if(ready_list[i].state != 2){
@@ -329,9 +356,8 @@ int main(const int argc, const char** argv){
 			}
 		}
 	}
+	cout << "------------" << endl;
+	cout << cstep << " clock cycles in total" << endl;
 
-
-	delete [] cdfg;
-	delete [] ready_list;
 	return 0;
 }
