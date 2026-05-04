@@ -53,10 +53,21 @@ try:
             server.send(arg.encode())
             
             data = recv_fulldata(socket=server)
-            file_path = os.path.join(PATH, arg)
-            with open(file_path, "wb") as file:
-                file.write(data)
-            print(f"file successfully saved to {file_path}")
+            if(len(data)>=0 and data[:1]=="1".encode()):
+                success = True
+            else:
+                success = False
+            if(len(data)>=1):
+                data = data[1:]
+            else:
+                data = b""
+            if(success):
+                file_path = os.path.join(PATH, arg)
+                with open(file_path, "wb") as file:
+                    file.write(data)
+                print(f"file successfully saved to {file_path}")
+            else:
+                print(f"[Server failed] {data.decode()}")
         elif(cmd == "quit"):
             header_data = struct.pack("!HBI", 0x4D46, 0x03, 0)
             server.send(header_data)

@@ -58,12 +58,14 @@ try:
             print(f"Required file: {filename}")
 
             # get the file binary data
-            file_data = b""
+            file_data = b"1"        # 1 stands for success get
             try:
                 with open(os.path.join(PATH, filename), "rb") as file:
-                    file_data = file.read()
+                    file_data += file.read()
             except Exception as e:
-                file_data = f"ERROR: {e}".encode()
+                file_data = b"0"    # 0 => failed
+                file_data += f"ERROR: {e}".encode()
+                print(f"Bad Get Request: {e}")
             
             # sent to client
             length = len(file_data)
